@@ -1,0 +1,23 @@
+{
+  "name": "寵妻神器 — CVS行銷AI助理",
+  "short_name": "寵妻神器",
+  "description": "百大CVS行銷經理AI自動駕駛面板，週報/DM分析/廠商開發/社群文案/商機雷達",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F1ED",
+  "theme_color": "#7C6E5C",
+  "orientation": "portrait-primary",
+  "lang": "zh-TW",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "週報自駕", "url": "/?tab=1", "description": "Excel 分析週報" },
+    { "name": "DM分析",   "url": "/?tab=2", "description": "節慶DM策略" },
+    { "name": "廠商星探", "url": "/?tab=3", "description": "AI搜尋廠商" },
+    { "name": "口碑機",   "url": "/?tab=4", "description": "社群爆款文案" },
+    { "name": "商機雷達", "url": "/?tab=5", "description": "爆紅趨勢商機" }
+  ]
+}

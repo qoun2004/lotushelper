@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+anthropic
+pandas
+openpyxl
+Pillow
+httpx
+python-dotenv
+pdfplumber
+apscheduler
+python-docx
+supabase
