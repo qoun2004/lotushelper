@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import VoiceBtn from './VoiceBtn';
 import HistoryPanel from './HistoryPanel';
 import ModuleHero from './ModuleHero';
@@ -273,6 +273,8 @@ export default function Module4Social() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
   const [results, setResults] = useState(null); // { copies: [], analysis?: {} }
+  const [loadingSec, setLoadingSec] = useState(0);
+  const timerRef = useRef(null);
   const { history, addHistory, clearHistory } = useHistory('module4');
 
   // 商品網址讀取
@@ -351,7 +353,8 @@ export default function Module4Social() {
   };
 
   const callAPI = async (endpoint, body, label) => {
-    setLoading(true); setError(null); setResults(null);
+    setLoading(true); setError(null); setResults(null); setLoadingSec(0);
+    timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
     try {
       const res  = await fetch(`${API}/api/module4/${endpoint}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -365,7 +368,10 @@ export default function Module4Social() {
       const msg = e.message;
       if (msg === '529_overloaded') setError('😅 AI 伺服器暫時過載，請稍後 30 秒再試');
       else setError(msg);
-    } finally { setLoading(false); }
+    } finally {
+      clearInterval(timerRef.current);
+      setLoading(false);
+    }
   };
 
   const handleGenerate = () => {
@@ -584,6 +590,35 @@ export default function Module4Social() {
         color: '#fff', fontWeight: 700, fontSize: 17,
         cursor: canGenerate() ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
       }}>{btnLabel()}</button>
+
+      {/* ── 載入中提示 ── */}
+      {loading && (
+        <div style={{ background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', borderRadius: 14, padding: '20px 18px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 8, animation: 'pulse 1.5s infinite' }}>✍️</div>
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--amber)', fontSize: 15 }}>
+            AI 正在創作中
+            {loadingSec > 0 && (
+              <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 8 }}>已等待 {loadingSec} 秒</span>
+            )}
+          </p>
+          <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            Claude AI 通常需要 <strong>30〜60 秒</strong>思考<br/>
+            完成後結果會自動出現在 <strong>這個畫面往下捲</strong> 👇
+          </p>
+          {loadingSec >= 30 && (
+            <div style={{ marginTop: 10, background: 'var(--amber)', borderRadius: 8, padding: '8px 14px', display: 'inline-block' }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#fff', fontWeight: 600 }}>
+                ⏳ 快好了！文案比較複雜，請再等一下，不要重複按喔
+              </p>
+            </div>
+          )}
+          {loadingSec >= 90 && (
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--red)' }}>
+              超過 90 秒？可能網路或後端有問題，可以重新整理頁面再試試
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── 錯誤提示 ── */}
       {error && (
