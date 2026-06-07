@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ModuleHero from './ModuleHero';
 import useVendorDB, { EMPTY_VENDOR } from '../hooks/useVendorDB';
 import { API_BASE as API } from '../lib/api';
@@ -10,6 +10,39 @@ const CATEGORIES = [
   { key: 'cvs',    icon: '🏪', label: '超商新品',  desc: '7-11、全家、萊爾富' },
   { key: 'collab', icon: '🤝', label: '品牌聯名',  desc: 'IP、限定、聯名話題' },
 ];
+
+const RADAR_HISTORY_KEY = 'module5_scan_history';
+const RADAR_HISTORY_LIMIT = 8;
+
+function loadRadarHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(RADAR_HISTORY_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveRadarHistory(entry) {
+  try {
+    const list = loadRadarHistory().filter(h => h.category !== entry.category || h.query !== entry.query);
+    list.unshift(entry);
+    localStorage.setItem(RADAR_HISTORY_KEY, JSON.stringify(list.slice(0, RADAR_HISTORY_LIMIT)));
+  } catch {}
+}
+
+function formatHistoryTime(ts) {
+  if (!ts) return '';
+  try {
+    return new Date(ts).toLocaleString('zh-TW', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}
 
 const SCORE_COLOR = {
   5: { bg: 'var(--red-bg)',   border: 'var(--red-border)',   color: 'var(--red)',   label: '🔴 必追蹤' },
@@ -217,6 +250,8 @@ export default function Module5Radar() {
   const [error, setError]                   = useState('');
   const [source, setSource]                 = useState('');
   const [loadingSec, setLoadingSec]         = useState(0);
+  const [history, setHistory]               = useState([]);
+  const [showHistory, setShowHistory]       = useState(false);
   const timerRef = useRef();
 
   // 每日快報
@@ -224,18 +259,36 @@ export default function Module5Radar() {
   const [daily, setDaily]               = useState(null);
   const [dailyTab, setDailyTab]         = useState('viral');
 
+  useEffect(() => {
+    setHistory(loadRadarHistory());
+  }, []);
+
   const scan = async () => {
     setLoading(true); setError(''); setResults(null); setLoadingSec(0);
     timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
     try {
+      const selectedCat = CATEGORIES.find(c => c.key === activeCategory);
       const res  = await fetch(`${API}/api/module5/scan`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category: activeCategory, custom_query: customQuery }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setResults(data.results || []);
+      const nextResults = data.results || [];
+      setResults(nextResults);
       setSource(data.source || '');
+      if (nextResults.length > 0) {
+        saveRadarHistory({
+          id: Date.now(),
+          category: activeCategory,
+          categoryLabel: selectedCat?.label || activeCategory,
+          query: customQuery.trim(),
+          source: data.source || '',
+          results: nextResults,
+          ts: new Date().toISOString(),
+        });
+        setHistory(loadRadarHistory());
+      }
     } catch (e) {
       setError(e.message);
     } finally { clearInterval(timerRef.current); setLoading(false); }
@@ -256,6 +309,23 @@ export default function Module5Radar() {
   const currentCat = CATEGORIES.find(c => c.key === activeCategory);
   const dailyCatData = daily?.categories?.[dailyTab] || [];
 
+  const restoreHistory = (entry) => {
+    setActiveCategory(entry.category || 'viral');
+    setCustomQuery(entry.query || '');
+    setResults(entry.results || []);
+    setSource(entry.source || 'history');
+    setError('');
+    setShowHistory(false);
+  };
+
+  const clearHistory = () => {
+    try {
+      localStorage.removeItem(RADAR_HISTORY_KEY);
+    } catch {}
+    setHistory([]);
+    setShowHistory(false);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <ModuleHero
@@ -271,7 +341,8 @@ export default function Module5Radar() {
           <div>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>📋 今日商機快報</p>
             {daily?.date && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>更新時間：{daily.date}</p>}
-            {!daily && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>每天 08:00 自動更新，或手動載入</p>}
+            {!daily && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>固定掃 4 大類，適合每天快速瀏覽；要查指定題目請用下方即時掃描</p>}
+            {daily && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>固定 4 大類快取結果；下方即時掃描可自訂關鍵字並留下紀錄</p>}
           </div>
           <button onClick={fetchDaily} disabled={dailyLoading} style={{
             padding: '8px 16px', borderRadius: 9, border: 'none', cursor: dailyLoading ? 'default' : 'pointer',
@@ -308,18 +379,22 @@ export default function Module5Radar() {
       {/* ── 手動搜尋 ── */}
       <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 16, border: '1px solid var(--border)' }}>
         <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>🔎 即時掃描</p>
+        <p style={{ margin: '-4px 0 12px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          手動查一次指定商機題目；結果會自動保留在「最近掃描」，關掉頁面也能找回來。
+        </p>
 
         {/* 類別選擇 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {CATEGORIES.map(cat => (
             <button key={cat.key} onClick={() => setActiveCategory(cat.key)} style={{
-              padding: '12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+              padding: '8px 12px', borderRadius: 20, cursor: 'pointer', textAlign: 'left',
               border: `1.5px solid ${activeCategory === cat.key ? 'var(--brand-border)' : 'var(--border)'}`,
               background: activeCategory === cat.key ? 'var(--brand-bg)' : 'var(--bg)',
+              color: activeCategory === cat.key ? 'var(--brand-dark)' : 'var(--text-2)',
+              fontSize: 12,
+              fontWeight: activeCategory === cat.key ? 800 : 600,
             }}>
-              <p style={{ margin: '0 0 2px', fontSize: 18 }}>{cat.icon}</p>
-              <p style={{ margin: '0 0 1px', fontSize: 12, fontWeight: 700, color: activeCategory === cat.key ? 'var(--brand-dark)' : 'var(--text)' }}>{cat.label}</p>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>{cat.desc}</p>
+              {cat.icon} {cat.label}
             </button>
           ))}
         </div>
@@ -344,6 +419,61 @@ export default function Module5Radar() {
         }}>
           {loading ? `⏳ AI 掃描${currentCat?.label || ''}中...` : `📡 掃描 ${currentCat?.label || ''}`}
         </button>
+
+        {history.length > 0 && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={() => setShowHistory(v => !v)} type="button" style={{
+                flex: 1,
+                padding: '8px 10px',
+                borderRadius: 9,
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
+                color: 'var(--text-2)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: 12,
+                fontWeight: 700,
+              }}>
+                🕘 最近掃描（{history.length}）{showHistory ? '▲' : '▼'}
+              </button>
+              <button onClick={clearHistory} type="button" style={{
+                padding: '8px 10px',
+                borderRadius: 9,
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: 12,
+              }}>
+                清除
+              </button>
+            </div>
+            {showHistory && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {history.map(entry => (
+                  <button key={entry.id || `${entry.category}-${entry.ts}`} onClick={() => restoreHistory(entry)} type="button" style={{
+                    padding: '9px 10px',
+                    borderRadius: 9,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, fontWeight: 800 }}>{entry.categoryLabel || entry.category}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{formatHistoryTime(entry.ts)}</span>
+                    </div>
+                    <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
+                      {entry.query ? `關鍵字：${entry.query}` : '使用預設搜尋'} · {entry.results?.length || 0} 筆
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Loading 進度卡 */}
@@ -377,8 +507,10 @@ export default function Module5Radar() {
           {source === 'google'
             ? '✅ 資料來源：Google 即時搜尋'
             : source === 'ai_fallback'
-              ? '🤖 Google 目前沒有找到資料，已改用 AI 市場知識庫補充'
-              : '🤖 資料來源：AI 市場知識庫（設定 GOOGLE_API_KEY 可啟用即時搜尋）'}
+              ? '🤖 Google 這次沒有找到可用資料，已改用 AI 市場知識庫補充'
+              : source === 'history'
+                ? '🕘 這是你之前的掃描紀錄'
+                : '🤖 資料來源：AI 市場知識庫（Railway 設定 GOOGLE_API_KEY / GOOGLE_CSE_ID 後可啟用即時搜尋）'}
         </p>
       )}
 
