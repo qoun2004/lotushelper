@@ -307,13 +307,13 @@ async def analyze(request: Request):
         # 最後放文字 prompt
         content.append({"type": "text", "text": prompt_text})
 
-        msg = call_claude(get_client(), 4096, [{"role": "user", "content": content}])
+        msg = call_claude(get_client(), 8192, [{"role": "user", "content": content}])
         raw_text = msg.content[0].text
 
         parsed = safe_json(raw_text)
         if not parsed:
             # JSON 解析失敗 → 讓 Claude 重新整理成 JSON
-            fix_msg = call_claude(get_client(), 4096, [
+            fix_msg = call_claude(get_client(), 8192, [
                 {"role": "user", "content": prompt_text},
                 {"role": "assistant", "content": raw_text},
                 {"role": "user", "content": "你的回答包含非 JSON 內容。請只輸出合法 JSON，從 { 開始，以 } 結束，不要有任何其他文字。"},
@@ -443,13 +443,13 @@ async def audit_dm_vs_excel(request: Request):
 
     try:
         client = get_client()
-        msg = call_claude(client, 4096, [{"role": "user", "content": content}])
+        msg = call_claude(client, 6144, [{"role": "user", "content": content}])
         raw_text = msg.content[0].text
         parsed = safe_json(raw_text)
 
         if not parsed:
             # 讓 Claude 整理成 JSON
-            fix = call_claude(client, 2048, [
+            fix = call_claude(client, 4096, [
                 {"role": "user", "content": audit_prompt},
                 {"role": "assistant", "content": raw_text},
                 {"role": "user", "content": "請只輸出合法 JSON，從 { 開始，以 } 結束。"},
