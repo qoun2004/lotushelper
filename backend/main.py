@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from routers import module1, module2, module3, module4, module5, knowledge, calendar
+from routers import module1, module2, module3, module4, module5, module6, knowledge, calendar
 
 # ── 每日排程：自動搜尋廠商 ──────────────────────────────────────
 scheduler = AsyncIOScheduler(timezone="Asia/Taipei")
@@ -65,6 +65,7 @@ app.include_router(module2.router, prefix="/api/module2", tags=["DM分析"])
 app.include_router(module3.router, prefix="/api/module3", tags=["廠商星探"])
 app.include_router(module4.router,    prefix="/api/module4",    tags=["口碑機"])
 app.include_router(module5.router,    prefix="/api/module5",    tags=["商機雷達"])
+app.include_router(module6.router,    prefix="/api/module6",    tags=["會議記錄"])
 app.include_router(knowledge.router,  prefix="/api/knowledge",  tags=["個人知識庫"])
 app.include_router(calendar.router,   prefix="/api/calendar",   tags=["行事曆"])
 

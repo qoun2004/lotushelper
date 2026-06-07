@@ -6,6 +6,7 @@ import Module2DM from '../components/Module2DM';
 import Module3Vendor from '../components/Module3Vendor';
 import Module4Social from '../components/Module4Social';
 import Module5Radar from '../components/Module5Radar';
+import Module6Meeting from '../components/Module6Meeting';
 import KnowledgeBase from '../components/KnowledgeBase';
 import AuthModal from '../components/AuthModal';
 import { supabase } from '../lib/supabase';
@@ -17,10 +18,11 @@ const TABS = [
   { id: 3, icon: '🤝', label: '廠商星探', short: '星探',  desc: '廠商搜尋 & 開發' },
   { id: 4, icon: '📈', label: '口碑機',   short: '口碑',  desc: '零預算社群文案' },
   { id: 5, icon: '📡', label: '商機雷達', short: '雷達',  desc: '爆紅趨勢 & 聯名' },
+  { id: 6, icon: '📝', label: '會議記錄', short: '會議',  desc: '逐字稿 → 決議待辦' },
 ];
 
 // 知識庫是獨立的隱藏 tab（桌機側邊欄可進入，不佔手機 tab 列）
-const KB_ID = 6;
+const KB_ID = 7;
 
 /* ── 側邊欄分隔標題 ── */
 function SidebarLabel({ children }) {
@@ -45,7 +47,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = parseInt(params.get('tab') || '0', 10);
-    if (tab >= 0 && tab <= 6) setActiveTab(tab);
+    if (tab >= 0 && tab <= 7) setActiveTab(tab);
   }, []);
 
   useEffect(() => {
@@ -258,6 +260,7 @@ export default function Home() {
           {activeTab === 3 && <Module3Vendor />}
           {activeTab === 4 && <Module4Social />}
           {activeTab === 5 && <Module5Radar />}
+          {activeTab === 6 && <Module6Meeting />}
           {activeTab === KB_ID && <KnowledgeBase />}
         </main>
 
