@@ -191,6 +191,13 @@ async def scan_market(req: ScanRequest):
                     "reason":  opp.get("reason", ""),
                 })
             results.sort(key=lambda x: x["score"], reverse=True)
+
+            # Google 沒結果 → fallback 到 AI 生成
+            if not results:
+                results = await ai_generate_results(req.category, req.custom_query)
+                results.sort(key=lambda x: x.get("score", 0), reverse=True)
+                return JSONResponse({"results": results, "category": req.category, "source": "ai_fallback"})
+
             return JSONResponse({"results": results, "category": req.category, "source": "google"})
 
         else:
