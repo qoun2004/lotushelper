@@ -170,7 +170,7 @@ async def analyze(request: Request):
   "report_text": "完整週報/月報全文（條列式，含現況摘要、成長亮點、衰退分析、市場洞察、策略建議，適合直接呈報主管）"
 }}"""
 
-            msg = call_claude(get_client(), MODEL, 4000,
+            msg = call_claude(get_client(), MODEL, 8192,
                               [{"role": "user", "content": prompt}])
             raw = msg.content[0].text
             return JSONResponse(safe_parse_json(raw))
@@ -211,7 +211,7 @@ async def analyze(request: Request):
 }}"""
             })
 
-            msg = call_claude(get_client(), MODEL, 2500,
+            msg = call_claude(get_client(), MODEL, 4096,
                               [{"role": "user", "content": image_content}])
             raw = msg.content[0].text
             return JSONResponse(safe_parse_json(raw))

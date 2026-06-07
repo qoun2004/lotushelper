@@ -158,7 +158,7 @@ function buildFullText(data, templateName) {
   return lines.join('\n');
 }
 
-// ── 下載 PPTX 報告 ──────────────────────────────────────────────
+// ── 下載 PPTX 報告（亮色專業版）────────────────────────────────
 async function downloadPPTX(data, templateName) {
   if (typeof window === 'undefined' || !window.PptxGenJS) {
     alert('PPT 函式庫載入中，請稍後再試（約 2 秒）');
@@ -172,53 +172,82 @@ async function downloadPPTX(data, templateName) {
   const isDown = data.overview?.trend === 'down';
   const today = new Date().toLocaleDateString('zh-TW');
   const font = '微軟正黑體';
-  const PRIMARY = '6366F1';
-  const GREEN = '4ADE80';
-  const RED = 'F87171';
-  const DARK = '0F172A';
-  const CARD = '1E293B';
+
+  // ── 亮色專業配色 ──
+  const PRIMARY   = '1E3A8A';   // 深海藍
+  const ACCENT    = '2563EB';   // 亮藍（標題、圖表）
+  const LIGHT_BG  = 'F8FAFC';   // 近白背景
+  const CARD_BG   = 'EFF6FF';   // 淡藍卡片
+  const WHITE     = 'FFFFFF';
+  const DARK_TXT  = '1E293B';   // 深色文字
+  const MID_TXT   = '475569';   // 次要文字
+  const GREEN     = '16A34A';   // 成長綠
+  const RED       = 'DC2626';   // 衰退紅
+  const GOLD      = 'D97706';   // 行動金
 
   const pres = new window.PptxGenJS();
   pres.layout = 'LAYOUT_16x9';
+
+  // ── helper：加頁首橫條 ──
+  const addHeader = (slide, label) => {
+    // 左側藍色實心條
+    slide.addText('', { x: 0, y: 0, w: 0.18, h: 5.63, fill: { color: PRIMARY } });
+    // 頂部橫條
+    slide.addText('', { x: 0, y: 0, w: 10, h: 0.08, fill: { color: ACCENT } });
+    // 頁首標題
+    slide.addText(label, {
+      x: 0.35, y: 0.14, w: 9.2, h: 0.42,
+      fontSize: 18, bold: true, color: PRIMARY, fontFace: font,
+    });
+    // 分隔線
+    slide.addText('', { x: 0.35, y: 0.62, w: 9.3, h: 0.025, fill: { color: 'BFDBFE' } });
+  };
 
   // ────────────────────────────────────────────
   // Slide 1：封面
   // ────────────────────────────────────────────
   const s1 = pres.addSlide();
-  s1.background = { color: DARK };
-  // 頂部色條
-  s1.addText('', { x: 0, y: 0, w: 10, h: 0.06, fill: { color: PRIMARY } });
-  // 品牌名
-  s1.addText('💫 寵妻神器 · CVS AI 分析', {
-    x: 0.5, y: 0.35, w: 9, h: 0.4,
-    fontSize: 12, color: '818CF8', fontFace: font,
+  s1.background = { color: PRIMARY };
+  // 右側裝飾色塊
+  s1.addText('', { x: 7.2, y: 0, w: 2.8, h: 5.63, fill: { color: ACCENT } });
+  s1.addText('', { x: 8.5, y: 0, w: 1.5, h: 5.63, fill: { color: '1D4ED8' } });
+  // 頂部橫條
+  s1.addText('', { x: 0, y: 0, w: 10, h: 0.1, fill: { color: GOLD } });
+  // 品牌 badge
+  s1.addText('寵妻神器  CVS AI', {
+    x: 0.6, y: 0.3, w: 5, h: 0.38,
+    fontSize: 12, color: 'BFDBFE', fontFace: font,
   });
-  // 報告標題
+  // 主標題
   s1.addText(title, {
-    x: 0.5, y: 0.95, w: 9, h: 0.9,
-    fontSize: 30, bold: true, color: 'F1F5F9', fontFace: font,
+    x: 0.6, y: 0.85, w: 6.3, h: 1.1,
+    fontSize: 32, bold: true, color: WHITE, fontFace: font,
+    lineSpacingMultiple: 1.2,
   });
   // 大數字
   if (growth) {
     s1.addText(growth, {
-      x: 0.5, y: 1.95, w: 9, h: 1.0,
-      fontSize: 48, bold: true, color: isUp ? GREEN : isDown ? RED : PRIMARY, fontFace: font,
+      x: 0.6, y: 2.1, w: 5, h: 1.0,
+      fontSize: 52, bold: true, color: isUp ? '4ADE80' : isDown ? 'FCA5A5' : 'FDE68A',
+      fontFace: font,
     });
   }
-  // 摘要一行
   if (oneLine) {
     s1.addText(oneLine, {
-      x: 0.5, y: 3.1, w: 9, h: 0.55,
-      fontSize: 15, color: '94A3B8', fontFace: font,
+      x: 0.6, y: 3.2, w: 6.2, h: 0.65,
+      fontSize: 14, color: 'BFDBFE', fontFace: font, lineSpacingMultiple: 1.4,
     });
   }
-  // 分析期間 + 日期
-  s1.addText(`${period}  ·  ${today}`, {
-    x: 0.5, y: 4.0, w: 9, h: 0.4,
-    fontSize: 11, color: '475569', fontFace: font,
+  s1.addText(`分析期間：${period}`, {
+    x: 0.6, y: 4.1, w: 5, h: 0.38,
+    fontSize: 11, color: '93C5FD', fontFace: font,
   });
-  // 底部色條
-  s1.addText('', { x: 0, y: 5.52, w: 10, h: 0.1, fill: { color: PRIMARY } });
+  s1.addText(`報告日期：${today}`, {
+    x: 0.6, y: 4.5, w: 5, h: 0.35,
+    fontSize: 11, color: '93C5FD', fontFace: font,
+  });
+  // 底部橫條
+  s1.addText('', { x: 0, y: 5.53, w: 10, h: 0.1, fill: { color: GOLD } });
 
   // ────────────────────────────────────────────
   // Slide 2：KPI 指標卡片
@@ -226,133 +255,177 @@ async function downloadPPTX(data, templateName) {
   const kpis = data.kpis || [];
   if (kpis.length > 0) {
     const s2 = pres.addSlide();
-    s2.background = { color: DARK };
-    s2.addText('', { x: 0, y: 0, w: 10, h: 0.06, fill: { color: PRIMARY } });
-    s2.addText('📊 關鍵指標', {
-      x: 0.4, y: 0.15, w: 9.2, h: 0.5,
-      fontSize: 20, bold: true, color: '818CF8', fontFace: font,
-    });
+    s2.background = { color: LIGHT_BG };
+    addHeader(s2, '📊  關鍵績效指標 KPI');
     const cols = kpis.length <= 2 ? kpis.length : 4;
-    const cardW = (9.2 / cols) - 0.15;
+    const cardW = (9.3 / cols) - 0.15;
     kpis.slice(0, 8).forEach((k, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const x = 0.4 + col * (cardW + 0.15);
-      const y = 0.85 + row * 1.55;
-      const tColor = k.trend === 'up' ? GREEN : k.trend === 'down' ? RED : '94A3B8';
-      s2.addText([
-        { text: k.label + '\n', options: { fontSize: 11, color: '64748B', fontFace: font } },
-        { text: k.value + '\n', options: { fontSize: 22, bold: true, color: 'F1F5F9', fontFace: font } },
-        { text: (k.trend === 'up' ? '↑ ' : k.trend === 'down' ? '↓ ' : '') + k.change, options: { fontSize: 12, color: tColor, fontFace: font } },
-      ], {
-        x, y, w: cardW, h: 1.35,
-        fill: { color: CARD }, rectRadius: 0.1,
-        valign: 'middle', align: 'center', inset: 0.1,
-      });
+      const x = 0.35 + col * (cardW + 0.15);
+      const y = 0.85 + row * 1.65;
+      const tColor = k.trend === 'up' ? GREEN : k.trend === 'down' ? RED : MID_TXT;
+      const arrow   = k.trend === 'up' ? '▲ ' : k.trend === 'down' ? '▼ ' : '';
+      // 卡片底色 + 左邊彩色邊線
+      s2.addText('', { x, y, w: cardW, h: 1.45, fill: { color: WHITE },
+        line: { color: 'E2E8F0', width: 1 }, rectRadius: 0.08 });
+      s2.addText('', { x, y, w: 0.06, h: 1.45,
+        fill: { color: k.trend === 'up' ? GREEN : k.trend === 'down' ? RED : ACCENT } });
+      // 文字
+      s2.addText(k.label, { x: x + 0.12, y: y + 0.12, w: cardW - 0.18, h: 0.32,
+        fontSize: 11, color: MID_TXT, fontFace: font });
+      s2.addText(k.value, { x: x + 0.12, y: y + 0.45, w: cardW - 0.18, h: 0.55,
+        fontSize: 22, bold: true, color: DARK_TXT, fontFace: font });
+      s2.addText(arrow + (k.change || ''), { x: x + 0.12, y: y + 1.02, w: cardW - 0.18, h: 0.3,
+        fontSize: 12, color: tColor, fontFace: font });
     });
-    s2.addText(`${period}`, { x: 0.4, y: 5.28, w: 9.2, h: 0.28, fontSize: 10, color: '475569', fontFace: font });
+    s2.addText(period, { x: 0.35, y: 5.25, w: 9.3, h: 0.28,
+      fontSize: 10, color: MID_TXT, fontFace: font, align: 'right' });
   }
 
   // ────────────────────────────────────────────
-  // Slide 3：成長亮點 vs 衰退品項
+  // Slide 3：長條圖（chart_data）
   // ────────────────────────────────────────────
-  const hasGrowth = (data.top_growth || []).length > 0;
+  const bar = data.chart_data?.bar;
+  if (bar?.labels?.length > 0) {
+    const s3 = pres.addSlide();
+    s3.background = { color: LIGHT_BG };
+    addHeader(s3, '📈  品項業績對比');
+    const chartData = [];
+    if (bar.current?.length) chartData.push({ name: '本期', labels: bar.labels, values: bar.current.map(Number) });
+    if (bar.previous?.length) chartData.push({ name: '前期', labels: bar.labels, values: bar.previous.map(Number) });
+    s3.addChart(pres.ChartType.bar, chartData, {
+      x: 0.35, y: 0.78, w: 9.3, h: 4.55,
+      barGrouping: 'clustered',
+      chartColors: [ACCENT, 'CBD5E1'],
+      showValue: true, dataLabelFontSize: 9,
+      dataLabelColor: DARK_TXT, dataLabelFontFace: font,
+      catAxisLabelFontSize: 10, catAxisLabelColor: DARK_TXT, catAxisLabelFontFace: font,
+      valAxisLabelFontSize: 10, valAxisLabelColor: MID_TXT,
+      legendFontSize: 11, legendColor: DARK_TXT,
+      showLegend: chartData.length > 1,
+      legendPos: 't',
+    });
+  }
+
+  // ────────────────────────────────────────────
+  // Slide 4：成長亮點 vs 衰退品項
+  // ────────────────────────────────────────────
+  const hasGrowth  = (data.top_growth  || []).length > 0;
   const hasDecline = (data.top_decline || []).length > 0;
   if (hasGrowth || hasDecline) {
-    const s3 = pres.addSlide();
-    s3.background = { color: DARK };
-    s3.addText('', { x: 0, y: 0, w: 10, h: 0.06, fill: { color: PRIMARY } });
-    s3.addText('📈 成長 vs 衰退', {
-      x: 0.4, y: 0.15, w: 9.2, h: 0.5,
-      fontSize: 20, bold: true, color: '818CF8', fontFace: font,
-    });
-    // 成長欄
-    if (hasGrowth) {
-      s3.addText('🚀 成長亮點', { x: 0.4, y: 0.8, w: 4.3, h: 0.4, fontSize: 13, bold: true, color: GREEN, fontFace: font });
-      const rows = (data.top_growth || []).slice(0, 6).map(g => ({
-        text: `${g.growth}  ${g.name}${g.note ? '\n  ' + g.note : ''}`,
-        options: { bullet: { indent: 8 }, paraSpaceAfter: 4 },
-      }));
-      s3.addText(rows, { x: 0.4, y: 1.25, w: 4.3, h: 3.8, fontSize: 12, color: 'CBD5E1', fontFace: font, valign: 'top' });
-    }
-    // 衰退欄
-    if (hasDecline) {
-      s3.addText('⚠️ 衰退品項', { x: 5.3, y: 0.8, w: 4.3, h: 0.4, fontSize: 13, bold: true, color: RED, fontFace: font });
-      const rows = (data.top_decline || []).slice(0, 6).map(d => ({
-        text: `${d.decline}  ${d.name}${d.note ? '\n  ' + d.note : ''}`,
-        options: { bullet: { indent: 8 }, paraSpaceAfter: 4 },
-      }));
-      s3.addText(rows, { x: 5.3, y: 1.25, w: 4.3, h: 3.8, fontSize: 12, color: 'CBD5E1', fontFace: font, valign: 'top' });
-    }
+    const s4 = pres.addSlide();
+    s4.background = { color: LIGHT_BG };
+    addHeader(s4, '🚀  成長亮點  ·  ⚠️  衰退品項');
     // 分隔線
-    s3.addText('', { x: 4.9, y: 0.8, w: 0.03, h: 4.0, fill: { color: '334155' } });
+    s4.addText('', { x: 4.92, y: 0.7, w: 0.04, h: 4.7, fill: { color: 'CBD5E1' } });
+    if (hasGrowth) {
+      // 成長標題 badge
+      s4.addText('▲ 成長亮點', { x: 0.35, y: 0.72, w: 4.35, h: 0.38,
+        fontSize: 13, bold: true, color: WHITE, fontFace: font,
+        fill: { color: GREEN }, rectRadius: 0.06 });
+      (data.top_growth || []).slice(0, 5).forEach((g, i) => {
+        const y = 1.22 + i * 0.78;
+        s4.addText('', { x: 0.35, y, w: 4.35, h: 0.65,
+          fill: { color: 'F0FDF4' }, line: { color: 'BBF7D0', width: 1 }, rectRadius: 0.06 });
+        s4.addText(g.growth, { x: 0.42, y: y + 0.06, w: 0.7, h: 0.52,
+          fontSize: 14, bold: true, color: GREEN, fontFace: font, align: 'center' });
+        s4.addText(g.name, { x: 1.18, y: y + 0.04, w: 3.4, h: 0.3,
+          fontSize: 12, bold: true, color: DARK_TXT, fontFace: font });
+        if (g.note) s4.addText(g.note, { x: 1.18, y: y + 0.33, w: 3.4, h: 0.28,
+          fontSize: 10, color: MID_TXT, fontFace: font });
+      });
+    }
+    if (hasDecline) {
+      s4.addText('▼ 衰退品項', { x: 5.15, y: 0.72, w: 4.5, h: 0.38,
+        fontSize: 13, bold: true, color: WHITE, fontFace: font,
+        fill: { color: RED }, rectRadius: 0.06 });
+      (data.top_decline || []).slice(0, 5).forEach((d, i) => {
+        const y = 1.22 + i * 0.78;
+        s4.addText('', { x: 5.15, y, w: 4.5, h: 0.65,
+          fill: { color: 'FEF2F2' }, line: { color: 'FECACA', width: 1 }, rectRadius: 0.06 });
+        s4.addText(d.decline, { x: 5.22, y: y + 0.06, w: 0.7, h: 0.52,
+          fontSize: 14, bold: true, color: RED, fontFace: font, align: 'center' });
+        s4.addText(d.name, { x: 5.98, y: y + 0.04, w: 3.5, h: 0.3,
+          fontSize: 12, bold: true, color: DARK_TXT, fontFace: font });
+        if (d.note) s4.addText(d.note, { x: 5.98, y: y + 0.33, w: 3.5, h: 0.28,
+          fontSize: 10, color: MID_TXT, fontFace: font });
+      });
+    }
   }
 
   // ────────────────────────────────────────────
-  // Slide 4：衰退原因 & 市場趨勢（若有）
+  // Slide 5：深度分析
   // ────────────────────────────────────────────
   if (data.decline_reasons || data.market_trends) {
-    const s4 = pres.addSlide();
-    s4.background = { color: DARK };
-    s4.addText('', { x: 0, y: 0, w: 10, h: 0.06, fill: { color: PRIMARY } });
-    s4.addText('🔍 深度分析', {
-      x: 0.4, y: 0.15, w: 9.2, h: 0.5,
-      fontSize: 20, bold: true, color: '818CF8', fontFace: font,
-    });
-    let yPos = 0.85;
-    if (data.decline_reasons) {
-      s4.addText('衰退原因分析', { x: 0.4, y: yPos, w: 9.2, h: 0.38, fontSize: 13, bold: true, color: RED, fontFace: font });
-      s4.addText(data.decline_reasons, { x: 0.4, y: yPos + 0.4, w: 9.2, h: 1.6, fontSize: 12, color: 'CBD5E1', fontFace: font, valign: 'top', lineSpacingMultiple: 1.4 });
-      yPos += 2.2;
-    }
-    if (data.market_trends) {
-      s4.addText('市場趨勢', { x: 0.4, y: yPos, w: 9.2, h: 0.38, fontSize: 13, bold: true, color: '818CF8', fontFace: font });
-      s4.addText(data.market_trends, { x: 0.4, y: yPos + 0.4, w: 9.2, h: 1.6, fontSize: 12, color: 'CBD5E1', fontFace: font, valign: 'top', lineSpacingMultiple: 1.4 });
-    }
-  }
-
-  // ────────────────────────────────────────────
-  // Slide 5：策略 & 行動清單
-  // ────────────────────────────────────────────
-  if (data.strategy || data.action_items?.length) {
     const s5 = pres.addSlide();
-    s5.background = { color: DARK };
-    s5.addText('', { x: 0, y: 0, w: 10, h: 0.06, fill: { color: PRIMARY } });
-    s5.addText('🎯 策略 & 行動清單', {
-      x: 0.4, y: 0.15, w: 9.2, h: 0.5,
-      fontSize: 20, bold: true, color: '818CF8', fontFace: font,
-    });
-    let yPos = 0.85;
-    if (data.strategy) {
-      s5.addText('今年策略規劃', { x: 0.4, y: yPos, w: 9.2, h: 0.38, fontSize: 13, bold: true, color: '818CF8', fontFace: font });
-      s5.addText(data.strategy, { x: 0.4, y: yPos + 0.4, w: 9.2, h: 1.5, fontSize: 12, color: 'CBD5E1', fontFace: font, valign: 'top', lineSpacingMultiple: 1.4 });
+    s5.background = { color: LIGHT_BG };
+    addHeader(s5, '🔍  深度分析');
+    let yPos = 0.78;
+    if (data.decline_reasons) {
+      s5.addText('衰退原因', { x: 0.35, y: yPos, w: 9.3, h: 0.35,
+        fontSize: 13, bold: true, color: WHITE, fontFace: font,
+        fill: { color: RED }, rectRadius: 0.05 });
+      s5.addText(data.decline_reasons, { x: 0.35, y: yPos + 0.4, w: 9.3, h: 1.55,
+        fontSize: 11, color: DARK_TXT, fontFace: font, valign: 'top',
+        lineSpacingMultiple: 1.45, fill: { color: 'FEF2F2' }, rectRadius: 0.05 });
       yPos += 2.1;
     }
-    if (data.action_items?.length) {
-      s5.addText('⚡ 行動清單', { x: 0.4, y: yPos, w: 9.2, h: 0.38, fontSize: 13, bold: true, color: 'FBBF24', fontFace: font });
-      const rows = (data.action_items || []).slice(0, 6).map((a, i) => ({
-        text: `${i + 1}.  ${a}`,
-        options: { paraSpaceAfter: 6 },
-      }));
-      s5.addText(rows, { x: 0.4, y: yPos + 0.45, w: 9.2, h: 2.4, fontSize: 12, color: 'CBD5E1', fontFace: font, valign: 'top' });
+    if (data.market_trends) {
+      s5.addText('市場趨勢', { x: 0.35, y: yPos, w: 9.3, h: 0.35,
+        fontSize: 13, bold: true, color: WHITE, fontFace: font,
+        fill: { color: ACCENT }, rectRadius: 0.05 });
+      s5.addText(data.market_trends, { x: 0.35, y: yPos + 0.4, w: 9.3, h: 1.55,
+        fontSize: 11, color: DARK_TXT, fontFace: font, valign: 'top',
+        lineSpacingMultiple: 1.45, fill: { color: CARD_BG }, rectRadius: 0.05 });
     }
   }
 
   // ────────────────────────────────────────────
-  // Slide 6：完整週報文字稿（若有）
+  // Slide 6：策略 & 行動清單
+  // ────────────────────────────────────────────
+  if (data.strategy || data.action_items?.length) {
+    const s6 = pres.addSlide();
+    s6.background = { color: LIGHT_BG };
+    addHeader(s6, '🎯  今年策略  ·  行動清單');
+    let yPos = 0.78;
+    if (data.strategy) {
+      s6.addText('策略方向', { x: 0.35, y: yPos, w: 9.3, h: 0.35,
+        fontSize: 13, bold: true, color: WHITE, fontFace: font,
+        fill: { color: ACCENT }, rectRadius: 0.05 });
+      s6.addText(data.strategy, { x: 0.35, y: yPos + 0.4, w: 9.3, h: 1.55,
+        fontSize: 11, color: DARK_TXT, fontFace: font, valign: 'top',
+        lineSpacingMultiple: 1.45, fill: { color: CARD_BG }, rectRadius: 0.05 });
+      yPos += 2.12;
+    }
+    if (data.action_items?.length) {
+      s6.addText('⚡ 立即行動', { x: 0.35, y: yPos, w: 9.3, h: 0.35,
+        fontSize: 13, bold: true, color: WHITE, fontFace: font,
+        fill: { color: GOLD }, rectRadius: 0.05 });
+      data.action_items.slice(0, 5).forEach((a, i) => {
+        const y = yPos + 0.42 + i * 0.42;
+        s6.addText(`${i + 1}`, { x: 0.35, y, w: 0.3, h: 0.35,
+          fontSize: 12, bold: true, color: WHITE, fontFace: font,
+          fill: { color: ACCENT }, align: 'center', rectRadius: 0.04 });
+        s6.addText(a.replace(/^[•\d\.\s]+/, ''), { x: 0.72, y, w: 8.9, h: 0.35,
+          fontSize: 11, color: DARK_TXT, fontFace: font, valign: 'middle',
+          fill: { color: i % 2 === 0 ? WHITE : LIGHT_BG } });
+      });
+    }
+  }
+
+  // ────────────────────────────────────────────
+  // Slide 7：完整報告草稿
   // ────────────────────────────────────────────
   if (data.report_text) {
-    const s6 = pres.addSlide();
-    s6.background = { color: DARK };
-    s6.addText('', { x: 0, y: 0, w: 10, h: 0.06, fill: { color: PRIMARY } });
-    s6.addText('📝 完整報告草稿', {
-      x: 0.4, y: 0.15, w: 9.2, h: 0.5,
-      fontSize: 20, bold: true, color: '818CF8', fontFace: font,
-    });
-    s6.addText(data.report_text, {
-      x: 0.4, y: 0.85, w: 9.2, h: 4.5,
-      fontSize: 11, color: 'CBD5E1', fontFace: font,
+    const s7 = pres.addSlide();
+    s7.background = { color: LIGHT_BG };
+    addHeader(s7, '📝  完整報告草稿');
+    s7.addText(data.report_text, {
+      x: 0.35, y: 0.78, w: 9.3, h: 4.6,
+      fontSize: 10.5, color: DARK_TXT, fontFace: font,
       valign: 'top', lineSpacingMultiple: 1.5,
+      fill: { color: WHITE }, rectRadius: 0.05,
     });
   }
 
