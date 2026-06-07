@@ -1,8 +1,13 @@
 node_modules/
 frontend/node_modules/
+frontend/.next/
 backend/__pycache__/
+backend/routers/__pycache__/
 backend/*.pyc
+*.pyc
 .env
 .env.local
 *.log
 .DS_Store
+.vercel
+.env*

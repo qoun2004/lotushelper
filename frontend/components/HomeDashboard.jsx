@@ -456,6 +456,7 @@ export default function HomeDashboard({ onNavigate }) {
     'DM 分析：掃描型 PDF 也支援，AI 自動視覺辨識 👁️',
     '口碑機：貼入商品網址，AI 自動讀取名稱、價格幫你生成文案 🔗',
     '週報自駕：同時上傳今年＋去年 Excel，可跑出 YoY 深度比較 📊',
+    '會議記錄：手機逐字稿貼上後，AI 直接整理決議與待辦 📝',
     '知識庫：填越詳細，AI 生成的報告語氣就越像你寫的 🧠',
   ];
 
@@ -542,6 +543,25 @@ export default function HomeDashboard({ onNavigate }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button
           onClick={() => onNavigate(6)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '14px 18px', background: 'var(--surface)',
+            borderRadius: 'var(--radius)', border: '1px solid var(--blue-border)',
+            cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-bg)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+        >
+          <span style={{ fontSize: 24 }}>📝</span>
+          <div>
+            <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>會議記錄</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>貼逐字稿，AI 整理摘要 / 決議 / 待辦</p>
+          </div>
+          <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--blue)', flexShrink: 0 }}>→</span>
+        </button>
+
+        <button
+          onClick={() => onNavigate(7)}
           style={{
             display: 'flex', alignItems: 'center', gap: 14,
             padding: '14px 18px', background: 'var(--surface)',
