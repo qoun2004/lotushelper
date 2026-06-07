@@ -1,9 +1,23 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import VoiceBtn from './VoiceBtn';
 import VendorDB from './VendorDB';
 import ModuleHero from './ModuleHero';
 import useVendorDB from '../hooks/useVendorDB';
+
+const HISTORY_KEY = 'module3_search_history';
+const MAX_HISTORY = 8;
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+function saveHistory(entry) {
+  try {
+    const list = loadHistory().filter(h => h.keyword !== entry.keyword || h.categoryKey !== entry.categoryKey);
+    list.unshift(entry);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_HISTORY)));
+  } catch {}
+}
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -215,7 +229,13 @@ function AiScout({ vendorAdd }) {
   const [error, setError]         = useState(null);
   const [emailLoadingMap, setEmailLoadingMap] = useState({});
   const [loadingSec, setLoadingSec] = useState(0);
+  const [history, setHistory]     = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [allSaved, setAllSaved]   = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
   const timerRef = useRef();
+
+  useEffect(() => { setHistory(loadHistory()); }, []);
 
   // 廠商類別選取的 category 文字（送給後端）
   const selectedCategory = VENDOR_CATEGORIES.find(c => c.key === categoryKey);
@@ -236,16 +256,20 @@ function AiScout({ vendorAdd }) {
     return { ...base, _custom: customList };
   };
 
-  const search = async () => {
-    if (!keyword.trim()) return;
-    setLoading(true); setError(null); setVendors(null); setLoadingSec(0);
+  const search = async (overrideKeyword, overrideCategoryKey) => {
+    const kw = overrideKeyword ?? keyword;
+    const ck = overrideCategoryKey ?? categoryKey;
+    if (!kw.trim()) return;
+    if (overrideKeyword !== undefined) { setKeyword(overrideKeyword); setCategoryKey(overrideCategoryKey ?? ''); }
+    setLoading(true); setError(null); setVendors(null); setLoadingSec(0); setAllSaved(false);
     timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
+    const selCat = VENDOR_CATEGORIES.find(c => c.key === ck);
     try {
       const res = await fetch(`${API}/api/module3/search`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          keyword,
-          category: selectedCategory ? `${selectedCategory.key}（${selectedCategory.desc}）` : '',
+          keyword: kw,
+          category: selCat ? `${selCat.key}（${selCat.desc}）` : '',
           criteria: buildCriteriaPayload(),
         }),
       });
@@ -257,12 +281,39 @@ function AiScout({ vendorAdd }) {
       }
       const results = (data.results || []).map((v, i) => ({ ...v, _open: i === 0 }));
       setVendors({ ...data, results });
+      // 儲存搜尋紀錄
+      const entry = { keyword: kw, categoryKey: ck, results, timestamp: Date.now() };
+      saveHistory(entry);
+      setHistory(loadHistory());
     } catch (e) {
       setError(e.message);
     } finally {
       clearInterval(timerRef.current);
       setLoading(false);
     }
+  };
+
+  const restoreHistory = (entry) => {
+    setKeyword(entry.keyword);
+    setCategoryKey(entry.categoryKey || '');
+    setVendors({ results: entry.results });
+    setAllSaved(false);
+    setShowHistory(false);
+  };
+
+  const saveAllToDB = async () => {
+    if (!vendors?.results?.length) return;
+    setSavingAll(true);
+    for (const vendor of vendors.results) {
+      await vendorAdd({
+        name: vendor.name, brand: vendor.brand || '',
+        category: vendor.category || '', location: vendor.location || '',
+        tags: vendor.tags || [], score: vendor.score || 80,
+        notes: vendor.description || '', status: '潛在',
+      });
+    }
+    setSavingAll(false);
+    setAllSaved(true);
   };
 
   const generateEmail = async (vendor) => {
@@ -307,12 +358,50 @@ function AiScout({ vendorAdd }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* ── 搜尋關鍵字 ── */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input value={keyword} onChange={e => setKeyword(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && search()}
-          placeholder="搜尋關鍵字（如：台灣有機茶飲、冷凍年菜、健康零食）"
-          style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 14 }} />
-        <VoiceBtn onResult={text => setKeyword(prev => prev ? prev + ' ' + text : text)} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input value={keyword} onChange={e => setKeyword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && search()}
+            placeholder="搜尋關鍵字（如：台灣有機茶飲、冷凍年菜、健康零食）"
+            style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 14 }} />
+          <VoiceBtn onResult={text => setKeyword(prev => prev ? prev + ' ' + text : text)} />
+        </div>
+        {/* 搜尋紀錄 */}
+        {history.length > 0 && (
+          <div>
+            <button onClick={() => setShowHistory(v => !v)} style={{
+              background: 'none', border: 'none', color: 'var(--brand)', fontSize: 12,
+              cursor: 'pointer', padding: '2px 0', fontWeight: 600,
+            }}>
+              🕘 最近搜尋 {history.length} 筆 {showHistory ? '▲' : '▼'}
+            </button>
+            {showHistory && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 10px' }}>
+                {history.map((h, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={() => restoreHistory(h)} style={{
+                      flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '6px 8px', borderRadius: 7, color: 'var(--text)',
+                      fontSize: 13, display: 'flex', gap: 8, alignItems: 'center',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >
+                      <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>🔍</span>
+                      <span style={{ fontWeight: 600 }}>{h.keyword}</span>
+                      {h.categoryKey && <span style={{ fontSize: 11, color: 'var(--brand)', background: 'var(--blue-bg)', padding: '1px 7px', borderRadius: 8 }}>{h.categoryKey}</span>}
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{h.results?.length} 筆 · {new Date(h.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    </button>
+                  </div>
+                ))}
+                <button onClick={() => { localStorage.removeItem(HISTORY_KEY); setHistory([]); setShowHistory(false); }} style={{
+                  fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer',
+                  textAlign: 'right', padding: '4px 8px 2px',
+                }}>清除紀錄</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── 廠商類別 ── */}
@@ -466,9 +555,23 @@ function AiScout({ vendorAdd }) {
       {/* 結果 */}
       {vendors?.results?.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-            找到 {vendors.results.length} 家符合條件的廠商 · 點「📥 存入廠商庫」儲存，▼ 展開查看詳情
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+              找到 {vendors.results.length} 家符合條件的廠商 · ▼ 展開查看詳情
+            </p>
+            <button
+              onClick={saveAllToDB}
+              disabled={savingAll || allSaved}
+              style={{
+                padding: '7px 14px', borderRadius: 8, border: 'none', cursor: allSaved ? 'default' : 'pointer',
+                background: allSaved ? 'var(--green)' : savingAll ? 'var(--border)' : 'var(--brand)',
+                color: '#fff', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
+              }}
+            >
+              {allSaved ? `✓ 已全部存入（${vendors.results.length} 家）` : savingAll ? '儲存中...' : `📥 一鍵全部加入廠商庫（${vendors.results.length} 家）`}
+            </button>
+          </div>
           {vendors.results.map((v, i) => (
             <VendorCard
               key={i}
