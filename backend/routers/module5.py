@@ -1,4 +1,4 @@
-import os, json, re, time
+import os, json, re, time, asyncio
 from datetime import datetime
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -176,20 +176,23 @@ async def scan_market(req: ScanRequest):
                     seen.add(item.get("link"))
                     unique.append(item)
 
-            # 評分
-            results = []
-            for item in unique[:6]:
-                title   = item.get("title", "")
-                snippet = item.get("snippet", "")
-                opp     = await quick_score(title, snippet)
-                results.append({
-                    "title":   title,
-                    "snippet": snippet,
+            # 評分（全部同時進行，大幅加速）
+            batch = unique[:6]
+            scores = await asyncio.gather(*[
+                quick_score(item.get("title", ""), item.get("snippet", ""))
+                for item in batch
+            ])
+            results = [
+                {
+                    "title":   item.get("title", ""),
+                    "snippet": item.get("snippet", ""),
                     "link":    item.get("link", ""),
                     "score":   opp.get("score", 2),
                     "action":  opp.get("action", "觀察"),
                     "reason":  opp.get("reason", ""),
-                })
+                }
+                for item, opp in zip(batch, scores)
+            ]
             results.sort(key=lambda x: x["score"], reverse=True)
 
             # Google 沒結果 → fallback 到 AI 生成
@@ -286,24 +289,28 @@ async def _run_daily_scan() -> dict:
     cse_id  = os.getenv("GOOGLE_CSE_ID", "")
     all_categories = {}
 
-    for cat in CATEGORIES:
+    async def scan_one_cat(cat):
         try:
             if api_key and cse_id:
                 raw = await google_search(cat["queries"][0], api_key, cse_id, num=3)
-                results = []
-                for item in raw[:3]:
-                    opp = await quick_score(item.get("title",""), item.get("snippet",""))
-                    results.append({
-                        "title":   item.get("title",""),
-                        "snippet": item.get("snippet",""),
-                        "link":    item.get("link",""),
-                        **opp,
-                    })
+                batch = raw[:3]
+                scores = await asyncio.gather(*[
+                    quick_score(item.get("title",""), item.get("snippet",""))
+                    for item in batch
+                ])
+                return [
+                    {"title": item.get("title",""), "snippet": item.get("snippet",""),
+                     "link": item.get("link",""), **opp}
+                    for item, opp in zip(batch, scores)
+                ]
             else:
-                results = (await ai_generate_results(cat["key"]))[:3]
-            all_categories[cat["key"]] = results
+                return (await ai_generate_results(cat["key"]))[:3]
         except:
-            all_categories[cat["key"]] = []
+            return []
+
+    results_list = await asyncio.gather(*[scan_one_cat(cat) for cat in CATEGORIES])
+    for cat, res in zip(CATEGORIES, results_list):
+        all_categories[cat["key"]] = res
 
     return {
         "date":       datetime.now().strftime("%Y-%m-%d %H:%M"),
