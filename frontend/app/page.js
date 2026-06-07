@@ -24,6 +24,20 @@ const TABS = [
 // 知識庫是獨立的隱藏 tab（桌機側邊欄可進入，不佔手機 tab 列）
 const KB_ID = 7;
 
+const MOBILE_PRIMARY = [
+  { id: 0, icon: '🏠', label: '首頁' },
+  { id: 1, icon: '📊', label: '報告' },
+  { id: 3, icon: '🤝', label: '開發' },
+  { id: 4, icon: '📈', label: '內容' },
+];
+
+const MOBILE_MORE = [
+  { id: 2, icon: '👁️', label: 'DM 分析', desc: 'PDF × 銷售對比' },
+  { id: 5, icon: '📡', label: '商機雷達', desc: '爆紅趨勢 & 聯名' },
+  { id: 6, icon: '📝', label: '會議記錄', desc: '逐字稿 → 決議待辦' },
+  { id: KB_ID, icon: '🧠', label: '個人知識庫', desc: '上傳報告 / 成功案例' },
+];
+
 /* ── 側邊欄分隔標題 ── */
 function SidebarLabel({ children }) {
   return (
@@ -40,6 +54,7 @@ export default function Home() {
   const [user, setUser]                 = useState(null);
   const [showAuth, setShowAuth]         = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const [mounted, setMounted]           = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -70,6 +85,12 @@ export default function Home() {
 
   const emailShort = user?.email ? user.email.split('@')[0] : '';
   const currentTab = TABS.find(t => t.id === activeTab);
+  const isMoreActive = MOBILE_MORE.some(t => t.id === activeTab);
+
+  const navigate = (id) => {
+    setActiveTab(id);
+    setShowMobileMore(false);
+  };
 
   return (
     <div className="app-shell">
@@ -167,10 +188,10 @@ export default function Home() {
           ════════════════════════════════════ */}
       <div className="app-body">
 
-        {/* 手機：Tab 列（5 個主功能）*/}
+        {/* 手機：分類式 Tab 列 */}
         <nav className="mobile-nav">
-          {TABS.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+          {MOBILE_PRIMARY.map(tab => (
+            <button key={tab.id} onClick={() => navigate(tab.id)} style={{
               flex: 1, padding: '10px 4px', border: 'none',
               background: 'transparent', cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
@@ -180,10 +201,45 @@ export default function Home() {
             }}>
               <span style={{ fontSize: 18 }}>{tab.icon}</span>
               <span style={{ fontSize: 10, fontWeight: activeTab === tab.id ? 700 : 400 }}>
-                {tab.short}
+                {tab.label}
               </span>
             </button>
           ))}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <button onClick={() => setShowMobileMore(s => !s)} style={{
+              width: '100%', padding: '10px 4px', border: 'none',
+              background: 'transparent', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              borderBottom: isMoreActive || showMobileMore ? '2px solid var(--brand)' : '2px solid transparent',
+              color: isMoreActive || showMobileMore ? 'var(--brand)' : 'var(--text-muted)',
+              transition: 'all 0.15s',
+            }}>
+              <span style={{ fontSize: 18 }}>☰</span>
+              <span style={{ fontSize: 10, fontWeight: isMoreActive || showMobileMore ? 700 : 400 }}>更多</span>
+            </button>
+            {showMobileMore && (
+              <div style={{
+                position: 'absolute', right: 6, top: 'calc(100% + 8px)', minWidth: 210,
+                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
+                boxShadow: '0 10px 30px rgba(0,0,0,0.14)', overflow: 'hidden', zIndex: 80,
+              }}>
+                {MOBILE_MORE.map(item => (
+                  <button key={item.id} onClick={() => navigate(item.id)} style={{
+                    width: '100%', padding: '11px 13px', border: 'none', borderBottom: '1px solid var(--border)',
+                    background: activeTab === item.id ? 'var(--brand-bg)' : 'var(--surface)',
+                    color: activeTab === item.id ? 'var(--brand-dark)' : 'var(--text-2)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                  }}>
+                    <span style={{ fontSize: 17, flexShrink: 0 }}>{item.icon}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'inherit' }}>{item.label}</span>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>{item.desc}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* ── 桌機：側邊欄 ── */}
@@ -193,7 +249,7 @@ export default function Home() {
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => navigate(tab.id)}
               className={`sidebar-btn${activeTab === tab.id ? ' active' : ''}`}
             >
               <span className="sb-icon">{tab.icon}</span>
@@ -207,7 +263,7 @@ export default function Home() {
           {/* 個人知識庫 — 獨立入口 */}
           <SidebarLabel>工具</SidebarLabel>
           <button
-            onClick={() => setActiveTab(KB_ID)}
+            onClick={() => navigate(KB_ID)}
             className={`sidebar-btn${activeTab === KB_ID ? ' active' : ''}`}
           >
             <span className="sb-icon">🧠</span>
@@ -252,7 +308,7 @@ export default function Home() {
         {/* ── 主要內容 ── */}
         <main
           className="app-main"
-          onClick={() => showUserMenu && setShowUserMenu(false)}
+          onClick={() => { if (showUserMenu) setShowUserMenu(false); if (showMobileMore) setShowMobileMore(false); }}
         >
           {activeTab === 0 && <HomeDashboard onNavigate={setActiveTab} />}
           {activeTab === 1 && <Module1Report />}

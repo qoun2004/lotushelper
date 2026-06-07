@@ -3,10 +3,17 @@ import { useRef, useState } from 'react';
 import HistoryPanel from './HistoryPanel';
 import ModuleHero from './ModuleHero';
 import useHistory from '../hooks/useHistory';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { apiJson } from '../lib/api';
 
 const MEETING_TYPES = ['一般會議', '專案進度', '主管會議', '廠商會議', '客戶訪談', '腦力激盪'];
+
+function escapeHtml(text = '') {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function FieldCard({ title, children, tone = 'brand' }) {
   const map = {
@@ -84,6 +91,59 @@ function MeetingResult({ data }) {
     URL.revokeObjectURL(url);
   };
 
+  const downloadWord = () => {
+    const title = escapeHtml(data.title || '會議記錄');
+    const list = (items = []) => items.length ? items.map(x => `<li>${escapeHtml(x)}</li>`).join('') : '<li>未提及</li>';
+    const actionRows = data.action_items?.length
+      ? data.action_items.map(x => `
+          <tr>
+            <td>${escapeHtml(x.task || '')}</td>
+            <td>${escapeHtml(x.owner || '未指定')}</td>
+            <td>${escapeHtml(x.deadline || '未指定')}</td>
+          </tr>
+        `).join('')
+      : '<tr><td colspan="3">未提及</td></tr>';
+    const html = `
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: "Microsoft JhengHei", Arial, sans-serif; color: #1f2933; line-height: 1.7; }
+          h1 { color: #5A5046; font-size: 24px; border-bottom: 3px solid #7C6E5C; padding-bottom: 8px; }
+          h2 { color: #7C6E5C; font-size: 16px; margin-top: 22px; }
+          table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+          th { background: #F4F1ED; color: #5A5046; text-align: left; }
+          th, td { border: 1px solid #D8D1C8; padding: 8px 10px; vertical-align: top; }
+          .summary { background: #F4F1ED; border-left: 5px solid #7C6E5C; padding: 12px 14px; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        <h2>會議摘要</h2>
+        <div class="summary">${escapeHtml(data.summary || '未提及')}</div>
+        <h2>出席人員</h2><ul>${list(data.attendees)}</ul>
+        <h2>決議事項</h2><ul>${list(data.decisions)}</ul>
+        <h2>待辦事項</h2>
+        <table>
+          <thead><tr><th>任務</th><th>負責人</th><th>期限</th></tr></thead>
+          <tbody>${actionRows}</tbody>
+        </table>
+        <h2>待確認事項</h2><ul>${list(data.pending)}</ul>
+        <h2>下次會議</h2><p>${escapeHtml(data.next_meeting || '未提及')}</p>
+        <h2>重要資訊 / 數字</h2><ul>${list(data.key_points)}</ul>
+      </body>
+      </html>
+    `;
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.title || '會議記錄'}_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
@@ -94,7 +154,8 @@ function MeetingResult({ data }) {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={copyAll} style={{ padding: '8px 13px', borderRadius: 9, border: `1px solid ${copied ? 'var(--green-border)' : 'var(--brand-border)'}`, background: copied ? 'var(--green-bg)' : 'var(--brand-bg)', color: copied ? 'var(--green)' : 'var(--brand-dark)', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>{copied ? '✓ 已複製' : '📋 複製全文'}</button>
-            <button onClick={downloadTxt} style={{ padding: '8px 13px', borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-2)', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>⬇️ 下載</button>
+            <button onClick={downloadWord} style={{ padding: '8px 13px', borderRadius: 9, border: '1px solid var(--brand-border)', background: 'var(--surface)', color: 'var(--brand-dark)', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>⬇️ Word</button>
+            <button onClick={downloadTxt} style={{ padding: '8px 13px', borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-2)', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>TXT</button>
           </div>
         </div>
       </div>
@@ -165,13 +226,7 @@ export default function Module6Meeting() {
     setResult(null);
     timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
     try {
-      const res = await fetch(`${API}/api/module6/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript, meeting_type: meetingType, date }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || res.statusText);
+      const data = await apiJson('/api/module6/analyze', { transcript, meeting_type: meetingType, date }, { timeoutMs: 180000 });
       setResult(data);
       addHistory({
         label: data.title || `${meetingType}會議`,

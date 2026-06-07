@@ -2,8 +2,7 @@
 import { useState, useRef } from 'react';
 import ModuleHero from './ModuleHero';
 import useVendorDB, { EMPTY_VENDOR } from '../hooks/useVendorDB';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE as API } from '../lib/api';
 
 const CATEGORIES = [
   { key: 'viral',  icon: '🔥', label: '爆紅商品',  desc: '社群、口碑、爆款' },

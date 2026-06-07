@@ -1,8 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import useVendorDB, { VENDOR_STATUS, EMPTY_VENDOR } from '../hooks/useVendorDB';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE as API } from '../lib/api';
 
 // LINE URL 輔助
 function lineUrl(lineId) {

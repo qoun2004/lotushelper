@@ -5,8 +5,7 @@ import VoiceBtn from './VoiceBtn';
 import HistoryPanel from './HistoryPanel';
 import ModuleHero from './ModuleHero';
 import useHistory from '../hooks/useHistory';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE as API } from '../lib/api';
 
 // ── 分析維度清單 ──────────────────────────────────────────────────
 // group: 'data' = 數據面（需 Excel 支撐）｜ 'strategy' = 策略面（AI 市場知識）

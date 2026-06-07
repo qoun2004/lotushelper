@@ -1,8 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import VoiceBtn from './VoiceBtn';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE as API } from '../lib/api';
 
 // ── 優先級設定 ────────────────────────────────────────────────────
 const PRIORITIES = [

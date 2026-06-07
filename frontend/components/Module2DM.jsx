@@ -4,8 +4,7 @@ import HistoryPanel from './HistoryPanel';
 import ModuleHero from './ModuleHero';
 import useHistory from '../hooks/useHistory';
 import VoiceBtn from './VoiceBtn';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE as API } from '../lib/api';
 
 // ── 複製純文字 ─────────────────────────────────────────────────
 function copyText(text) {

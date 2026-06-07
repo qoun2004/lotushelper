@@ -4,8 +4,7 @@ import VoiceBtn from './VoiceBtn';
 import HistoryPanel from './HistoryPanel';
 import ModuleHero from './ModuleHero';
 import useHistory from '../hooks/useHistory';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE as API } from '../lib/api';
 
 const PLATFORMS = [
   { key: 'threads', label: 'Threads', icon: '🧵', color: '#a855f7' },

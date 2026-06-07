@@ -4,6 +4,7 @@ import VoiceBtn from './VoiceBtn';
 import VendorDB from './VendorDB';
 import ModuleHero from './ModuleHero';
 import useVendorDB from '../hooks/useVendorDB';
+import { API_BASE as API } from '../lib/api';
 
 const HISTORY_KEY = 'module3_search_history';
 const MAX_HISTORY = 8;
@@ -18,8 +19,6 @@ function saveHistory(entry) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_HISTORY)));
   } catch {}
 }
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // ── 廠商類別（快速選擇）──────────────────────────────────────────
 const VENDOR_CATEGORIES = [
@@ -594,7 +593,7 @@ function AiScout({ vendorAdd }) {
 }
 
 // ── 名片快速識別模式 ────────────────────────────────────────────
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = API;
 
 function CardScanner({ vendorAdd }) {
   const [scanning, setScanning] = useState(false);

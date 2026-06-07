@@ -1,7 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE as API } from '../lib/api';
 
 // ── 個人 AI 名片的區段定義 ─────────────────────────────────────────
 const PROFILE_SECTIONS = [
