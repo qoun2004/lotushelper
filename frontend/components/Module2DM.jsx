@@ -341,8 +341,10 @@ function AuditMode() {
   const [loading, setLoading]   = useState(false);
   const [result, setResult]     = useState(null);
   const [error, setError]       = useState(null);
+  const [loadingSec, setLoadingSec] = useState(0);
   const dmRef    = useRef();
   const xlsRef   = useRef();
+  const timerRef = useRef();
 
   const addPdfs = (files) =>
     setDmPdfs(prev => [...prev, ...Array.from(files).filter(f =>
@@ -351,7 +353,8 @@ function AuditMode() {
 
   const audit = async () => {
     if (!dmPdfs.length || !priceExcel) return;
-    setLoading(true); setError(null); setResult(null);
+    setLoading(true); setError(null); setResult(null); setLoadingSec(0);
+    timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
     try {
       const form = new FormData();
       dmPdfs.forEach((f, i) => form.append(`dm_pdf_${i}`, f));
@@ -362,7 +365,10 @@ function AuditMode() {
       setResult(json);
     } catch (e) {
       setError(e.message);
-    } finally { setLoading(false); }
+    } finally {
+      clearInterval(timerRef.current);
+      setLoading(false);
+    }
   };
 
   const ISSUE_STYLE = {
@@ -438,6 +444,26 @@ function AuditMode() {
       }}>
         {loading ? '🔍 AI 逐頁比對中（可能需要 1~2 分鐘）...' : '🔍 開始 DM × Excel 稽核比對'}
       </button>
+
+      {/* 載入中提示 */}
+      {loading && (
+        <div style={{ background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', borderRadius: 14, padding: '20px 18px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--amber)', fontSize: 15 }}>
+            AI 逐頁比對中
+            {loadingSec > 0 && <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 8 }}>已等待 {loadingSec} 秒</span>}
+          </p>
+          <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            DM 稽核需要比對每頁，通常需要 <strong>1〜2 分鐘</strong><br/>
+            完成後結果會自動出現在 <strong>下方</strong> 👇
+          </p>
+          {loadingSec >= 30 && (
+            <div style={{ marginTop: 10, background: 'var(--amber)', borderRadius: 8, padding: '8px 14px', display: 'inline-block' }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#fff', fontWeight: 600 }}>⏳ AI 正在仔細核對每一項，請耐心等候</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 錯誤 */}
       {error && (
@@ -539,10 +565,12 @@ export default function Module2DM() {
   const [result, setResult]       = useState(null);
   const [error, setError]         = useState(null);
   const [retryInfo, setRetryInfo] = useState('');
+  const [loadingSec, setLoadingSec] = useState(0);
   const { history, addHistory, clearHistory } = useHistory('module2');
   const prevRef = useRef();
   const lastRef = useRef();
   const xlsRef  = useRef();
+  const timerRef = useRef();
 
   // 接受 PDF + 圖片
   const addPdfs = (setter, files) =>
@@ -554,7 +582,8 @@ export default function Module2DM() {
     if (!prevPdfs.length && !lastPdfs.length && !excelFile) {
       setError('請至少上傳一份 DM PDF 或銷售 Excel'); return;
     }
-    setLoading(true); setError(null); setResult(null); setRetryInfo('');
+    setLoading(true); setError(null); setResult(null); setRetryInfo(''); setLoadingSec(0);
+    timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
     try {
       const form = new FormData();
       prevPdfs.forEach((f, i) => form.append(`prev_pdf_${i}`, f));
@@ -583,6 +612,7 @@ export default function Module2DM() {
     } catch (e) {
       setError(e.message?.includes('overloaded') ? '529_overloaded' : e.message);
     } finally {
+      clearInterval(timerRef.current);
       setLoading(false);
     }
   };
@@ -728,6 +758,31 @@ export default function Module2DM() {
       }}>
         {loading ? '⏳ AI 分析中...' : '🔍 開始分析 → 生成策略建議書'}
       </button>
+
+      {/* Loading 進度卡 */}
+      {loading && (
+        <div style={{ background: 'var(--brand-bg)', border: '1px solid var(--brand-border)', borderRadius: 14, padding: '20px 18px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--brand-dark)', fontSize: 15 }}>
+            AI 策略分析中
+            {loadingSec > 0 && <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 8 }}>已等待 {loadingSec} 秒</span>}
+          </p>
+          <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            DM 策略分析通常需要 <strong>30〜90 秒</strong><br/>
+            完成後結果會自動出現在 <strong>下方</strong> 👇
+          </p>
+          {loadingSec >= 30 && (
+            <div style={{ marginTop: 10, background: 'var(--brand)', borderRadius: 8, padding: '8px 14px', display: 'inline-block' }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#fff', fontWeight: 600 }}>⏳ 快好了！AI 正在整理策略報告，請耐心等候，不要重複按</p>
+            </div>
+          )}
+          {loadingSec >= 90 && (
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--red)' }}>
+              超過 90 秒？可能網路或後端有問題，可以重新整理頁面再試試
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 重試提示 */}
       {retryInfo && (

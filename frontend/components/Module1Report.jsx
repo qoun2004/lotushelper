@@ -224,8 +224,10 @@ export default function Module1Report() {
   const [loading, setLoading]     = useState(false);
   const [result, setResult]       = useState(null);
   const [error, setError]         = useState(null);
+  const [loadingSec, setLoadingSec] = useState(0);
   const fileRef = useRef();
   const imgRef  = useRef();
+  const timerRef = useRef();
   const { history, addHistory, clearHistory } = useHistory('module1');
 
   // 快速預設
@@ -261,7 +263,8 @@ export default function Module1Report() {
   };
 
   const analyze = async () => {
-    setLoading(true); setError(null); setResult(null);
+    setLoading(true); setError(null); setResult(null); setLoadingSec(0);
+    timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
     try {
       const form = new FormData();
       const prompt = buildPrompt(selected, customText);
@@ -287,7 +290,10 @@ export default function Module1Report() {
       });
     } catch (e) {
       setError(e.message?.includes('overloaded') ? '529_overloaded' : e.message);
-    } finally { setLoading(false); }
+    } finally {
+      clearInterval(timerRef.current);
+      setLoading(false);
+    }
   };
 
   // 有勾選項目 OR 有自訂文字，都算有效
@@ -523,6 +529,26 @@ export default function Module1Report() {
         <p style={{ margin: '-10px 0 0', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
           {mode === 'upload' ? '⬆️ 還沒上傳 Excel 檔案' : '⬆️ 還沒上傳截圖'}
         </p>
+      )}
+
+      {/* ── 載入中提示 ── */}
+      {loading && (
+        <div style={{ background: 'var(--brand-bg)', border: '1px solid var(--brand-border)', borderRadius: 14, padding: '20px 18px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--brand-dark)', fontSize: 15 }}>
+            AI 分析中
+            {loadingSec > 0 && <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 8 }}>已等待 {loadingSec} 秒</span>}
+          </p>
+          <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            報告分析通常需要 <strong>30〜90 秒</strong><br/>
+            完成後結果會自動出現在 <strong>下方</strong> 👇
+          </p>
+          {loadingSec >= 30 && (
+            <div style={{ marginTop: 10, background: 'var(--brand)', borderRadius: 8, padding: '8px 14px', display: 'inline-block' }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#fff', fontWeight: 600 }}>⏳ 快好了！請耐心等候，不要重複按</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* 錯誤訊息 */}

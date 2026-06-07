@@ -214,6 +214,8 @@ function AiScout({ vendorAdd }) {
   const [vendors, setVendors]     = useState(null);
   const [error, setError]         = useState(null);
   const [emailLoadingMap, setEmailLoadingMap] = useState({});
+  const [loadingSec, setLoadingSec] = useState(0);
+  const timerRef = useRef();
 
   // 廠商類別選取的 category 文字（送給後端）
   const selectedCategory = VENDOR_CATEGORIES.find(c => c.key === categoryKey);
@@ -236,7 +238,8 @@ function AiScout({ vendorAdd }) {
 
   const search = async () => {
     if (!keyword.trim()) return;
-    setLoading(true); setError(null); setVendors(null);
+    setLoading(true); setError(null); setVendors(null); setLoadingSec(0);
+    timerRef.current = setInterval(() => setLoadingSec(s => s + 1), 1000);
     try {
       const res = await fetch(`${API}/api/module3/search`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -257,6 +260,7 @@ function AiScout({ vendorAdd }) {
     } catch (e) {
       setError(e.message);
     } finally {
+      clearInterval(timerRef.current);
       setLoading(false);
     }
   };
@@ -420,6 +424,31 @@ function AiScout({ vendorAdd }) {
       }}>
         {loading ? '🔍 AI 正在篩選廠商...' : '🚀 搜尋符合條件的廠商'}
       </button>
+
+      {/* Loading 進度卡 */}
+      {loading && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 14, padding: '20px 18px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: '#166534', fontSize: 15 }}>
+            AI 廠商搜尋中
+            {loadingSec > 0 && <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 8 }}>已等待 {loadingSec} 秒</span>}
+          </p>
+          <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            AI 篩選廠商通常需要 <strong>20〜60 秒</strong><br/>
+            完成後結果會自動出現在 <strong>下方</strong> 👇
+          </p>
+          {loadingSec >= 30 && (
+            <div style={{ marginTop: 10, background: 'var(--green)', borderRadius: 8, padding: '8px 14px', display: 'inline-block' }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#fff', fontWeight: 600 }}>⏳ 快好了！AI 正在比對廠商資料，請耐心等候，不要重複按</p>
+            </div>
+          )}
+          {loadingSec >= 90 && (
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--red)' }}>
+              超過 90 秒？可能網路或後端有問題，可以重新整理頁面再試試
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 錯誤 */}
       {error && (
