@@ -78,6 +78,29 @@ CATEGORIES = [
     },
 ]
 
+FALLBACK_RESULTS = {
+    "viral": [
+        {"title": "高蛋白即飲飲品", "snippet": "健身、控醣與上班族代餐需求持續成長，適合超商用小容量即飲規格測試。", "link": "", "score": 4, "action": "採購合作", "reason": "可用早餐與健身情境切入"},
+        {"title": "低糖茶飲與無糖氣泡飲", "snippet": "低糖、無糖仍是便利商店飲料架的重要趨勢，可搭配新品試飲與社群口碑。", "link": "", "score": 4, "action": "聯名開發", "reason": "符合健康化消費趨勢"},
+        {"title": "冷凍即食小份量料理", "snippet": "單身與小家庭需求增加，小份量冷凍熟食有機會補足晚餐與宵夜場景。", "link": "", "score": 3, "action": "持續觀察", "reason": "可測試區域門市導入"},
+    ],
+    "media": [
+        {"title": "排隊甜點小店", "snippet": "媒體報導型甜點品牌常有短期話題高峰，適合做期間限定或區域快閃。", "link": "", "score": 4, "action": "聯名開發", "reason": "容易創造上架話題"},
+        {"title": "地方老店伴手禮", "snippet": "地方特色品牌具備故事性，適合節慶禮盒或城市限定商品。", "link": "", "score": 4, "action": "採購合作", "reason": "可包裝成地域特色企劃"},
+        {"title": "社群爆紅早餐店", "snippet": "早餐與輕食題材可延伸成飯糰、三明治或冷藏即食品。", "link": "", "score": 3, "action": "持續觀察", "reason": "與超商即食場景吻合"},
+    ],
+    "cvs": [
+        {"title": "IP 聯名甜點", "snippet": "超商聯名仍以甜點、飲品與周邊最容易帶動社群分享。", "link": "", "score": 4, "action": "學習跟風", "reason": "可參考包裝與集點機制"},
+        {"title": "季節限定飲品", "snippet": "季節感明確的飲品能帶動短期嘗鮮，可結合社群投票與限定包裝。", "link": "", "score": 3, "action": "持續觀察", "reason": "適合短檔期測試"},
+        {"title": "高質感冷藏甜點", "snippet": "冷藏甜點仍是超商差異化重點，可尋找小型甜點品牌合作。", "link": "", "score": 4, "action": "採購合作", "reason": "毛利與話題性兼具"},
+    ],
+    "collab": [
+        {"title": "人氣角色 IP 食品聯名", "snippet": "IP 聯名可快速累積社群討論，適合搭配限量包裝與會員活動。", "link": "", "score": 5, "action": "聯名開發", "reason": "話題擴散力最高"},
+        {"title": "飲料品牌 × 甜點品牌", "snippet": "跨品類聯名能創造新口味與拍照記憶點，適合短期檔期。", "link": "", "score": 4, "action": "聯名開發", "reason": "可提高新品嘗鮮率"},
+        {"title": "在地品牌共同企劃", "snippet": "地方品牌與超商通路合作能強化故事性與區域差異。", "link": "", "score": 3, "action": "持續觀察", "reason": "適合區域試點"},
+    ],
+}
+
 # ── Request Models ───────────────────────────────────────────────────
 class ScanRequest(BaseModel):
     category: str = "viral"
@@ -90,13 +113,17 @@ class AnalyzeUrlRequest(BaseModel):
 
 # ── Google Custom Search ─────────────────────────────────────────────
 async def google_search(query: str, api_key: str, cse_id: str, num: int = 6) -> list:
+    current_year = str(datetime.now().year)
+    query = re.sub(r'\b20\d{2}\b', current_year, query)
     params = {
         "key": api_key, "cx": cse_id, "q": query,
         "lr": "lang_zh-TW", "gl": "tw", "num": num,
-        "dateRestrict": "m3",  # 近 3 個月
+        "dateRestrict": "m12",  # 放寬到近 12 個月，避免新 CSE 搜不到資料
     }
     async with httpx.AsyncClient(timeout=10) as client:
         res = await client.get("https://www.googleapis.com/customsearch/v1", params=params)
+        if res.status_code != 200:
+            return []
         data = res.json()
     return data.get("items", [])
 
@@ -147,9 +174,13 @@ async def ai_generate_results(category_key: str, custom_query: str = "") -> list
   ]
 }}"""
 
-    msg = call_claude(get_client(), MODEL_MAIN, 1800, [{"role": "user", "content": prompt}])
-    parsed = safe_json(msg.content[0].text)
-    return parsed.get("results", []) if parsed else []
+    try:
+        msg = call_claude(get_client(), MODEL_MAIN, 1800, [{"role": "user", "content": prompt}])
+        parsed = safe_json(msg.content[0].text)
+        results = parsed.get("results", []) if parsed else []
+        return results or FALLBACK_RESULTS.get(category_key, FALLBACK_RESULTS["viral"])
+    except Exception:
+        return FALLBACK_RESULTS.get(category_key, FALLBACK_RESULTS["viral"])
 
 # ── 端點一：掃描特定類別 ─────────────────────────────────────────────
 @router.post("/scan")
@@ -294,6 +325,8 @@ async def _run_daily_scan() -> dict:
             if api_key and cse_id:
                 raw = await google_search(cat["queries"][0], api_key, cse_id, num=3)
                 batch = raw[:3]
+                if not batch:
+                    return (await ai_generate_results(cat["key"]))[:3]
                 scores = await asyncio.gather(*[
                     quick_score(item.get("title",""), item.get("snippet",""))
                     for item in batch
@@ -306,7 +339,7 @@ async def _run_daily_scan() -> dict:
             else:
                 return (await ai_generate_results(cat["key"]))[:3]
         except:
-            return []
+            return FALLBACK_RESULTS.get(cat["key"], [])[:3]
 
     results_list = await asyncio.gather(*[scan_one_cat(cat) for cat in CATEGORIES])
     for cat, res in zip(CATEGORIES, results_list):

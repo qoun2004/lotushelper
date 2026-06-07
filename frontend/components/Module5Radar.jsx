@@ -246,9 +246,10 @@ export default function Module5Radar() {
     try {
       const res  = await fetch(`${API}/api/module5/daily_report`);
       const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || res.statusText);
       setDaily(data);
     } catch (e) {
-      setError('每日快報載入失敗');
+      setError(`每日快報載入失敗：${e.message || '請稍後再試'}`);
     } finally { setDailyLoading(false); }
   };
 
@@ -373,7 +374,11 @@ export default function Module5Radar() {
       {/* 來源提示 */}
       {source && (
         <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-          {source === 'google' ? '✅ 資料來源：Google 即時搜尋' : '🤖 資料來源：AI 市場知識庫（設定 GOOGLE_API_KEY 可啟用即時搜尋）'}
+          {source === 'google'
+            ? '✅ 資料來源：Google 即時搜尋'
+            : source === 'ai_fallback'
+              ? '🤖 Google 目前沒有找到資料，已改用 AI 市場知識庫補充'
+              : '🤖 資料來源：AI 市場知識庫（設定 GOOGLE_API_KEY 可啟用即時搜尋）'}
         </p>
       )}
 
