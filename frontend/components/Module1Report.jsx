@@ -540,13 +540,18 @@ export default function Module1Report() {
             {loadingSec > 0 && <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 8 }}>已等待 {loadingSec} 秒</span>}
           </p>
           <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
-            報告分析通常需要 <strong>30〜90 秒</strong><br/>
+            報告分析通常需要 <strong>1〜5 分鐘</strong><br/>
             完成後結果會自動出現在 <strong>下方</strong> 👇
           </p>
           {loadingSec >= 30 && (
             <div style={{ marginTop: 10, background: 'var(--brand)', borderRadius: 8, padding: '8px 14px', display: 'inline-block' }}>
-              <p style={{ margin: 0, fontSize: 12, color: '#fff', fontWeight: 600 }}>⏳ 快好了！請耐心等候，不要重複按</p>
+              <p style={{ margin: 0, fontSize: 12, color: '#fff', fontWeight: 600 }}>⏳ AI 正在整理報告，請耐心等候，不要重複按</p>
             </div>
+          )}
+          {loadingSec >= 300 && (
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--red)' }}>
+              超過 5 分鐘？可能網路或後端有問題，可以重新整理頁面再試試
+            </p>
           )}
         </div>
       )}
