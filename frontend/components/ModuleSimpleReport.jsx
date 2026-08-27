@@ -62,6 +62,21 @@ function buildPlainText(data) {
   return lines.filter(Boolean).join('\n');
 }
 
+function escapeXml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function worksheetXml(name, rows) {
+  const body = rows.map(row => (
+    `<Row>${row.map(cell => `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`).join('')}</Row>`
+  )).join('');
+  return `<Worksheet ss:Name="${escapeXml(name)}"><Table>${body}</Table></Worksheet>`;
+}
+
 export default function ModuleSimpleReport() {
   const fileRef = useRef(null);
   const [reportType, setReportType] = useState('weekly');
@@ -138,6 +153,72 @@ export default function ModuleSimpleReport() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${result?.suggested_title || result?.title || '報告草稿'}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadExcel = () => {
+    const highlights = result?.highlights || [];
+    const risks = result?.risks || [];
+    const actions = result?.action_items || [];
+    const sections = result?.sections || [];
+    const notes = result?.source_notes || [];
+
+    const summaryRows = [
+      ['項目', '內容'],
+      ['標題', result?.title || '報告草稿'],
+      ['報告類型', result?.report_type || reportType],
+      ['摘要', result?.summary || ''],
+      ['建議標題', result?.suggested_title || ''],
+    ];
+
+    const pointRows = [
+      ['類型', '內容'],
+      ...highlights.map(item => ['重點亮點', item]),
+      ...risks.map(item => ['風險 / 待補資料', item]),
+      ...notes.map(item => ['資料依據', item]),
+    ];
+
+    const actionRows = [
+      ['待辦事項', '負責人', '期限'],
+      ...actions.map(item => (
+        typeof item === 'string'
+          ? [item, '', '']
+          : [item.task || '', item.owner || '', item.deadline || '']
+      )),
+    ];
+
+    const sectionRows = [
+      ['段落標題', '內容'],
+      ...sections.map(section => [section.heading || '', section.content || '']),
+    ];
+
+    const reportRows = [
+      ['完整報告'],
+      ...buildPlainText(result).split('\n').map(line => [line]),
+    ];
+
+    const workbook = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Top" ss:WrapText="1"/><Font ss:FontName="Microsoft JhengHei" ss:Size="11"/></Style>
+ </Styles>
+ ${worksheetXml('摘要', summaryRows)}
+ ${worksheetXml('重點與風險', pointRows)}
+ ${worksheetXml('待辦事項', actionRows)}
+ ${worksheetXml('段落內容', sectionRows)}
+ ${worksheetXml('完整報告', reportRows)}
+</Workbook>`;
+
+    const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${result?.suggested_title || result?.title || '報告草稿'}.xls`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -294,6 +375,7 @@ export default function ModuleSimpleReport() {
             </div>
             <div className="sr-actions">
               <button onClick={copyResult}>{copied ? '已複製' : '複製全文'}</button>
+              <button onClick={downloadExcel}>下載 Excel</button>
               <button onClick={downloadWord}>下載 Word</button>
             </div>
           </div>
