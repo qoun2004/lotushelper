@@ -18,7 +18,7 @@ from routers.knowledge import (
 
 router = APIRouter()
 
-MODEL_MAIN = os.getenv("REPORT_MODEL", "claude-haiku-4-5")
+MODEL_MAIN = os.getenv("REPORT_MODEL", "claude-sonnet-4-6")
 
 
 def get_client():
