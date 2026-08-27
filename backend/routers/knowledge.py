@@ -5,6 +5,7 @@
 - 生成報告時自動引用相關知識
 """
 import os, io, json, re, time
+from datetime import datetime
 from fastapi import APIRouter, Request, UploadFile, File, Form
 from fastapi.responses import JSONResponse, Response
 from typing import Optional
@@ -177,9 +178,34 @@ def call_claude(client, model, max_tokens, messages, retries=2):
                 continue
             raise
 
-def extract_text_from_file(file_bytes: bytes, filename: str) -> str:
+def _password_candidates(filename: str, passwords: list[str] | None = None) -> list[str]:
+    candidates = []
+    for pw in passwords or []:
+        cleaned = (pw or "").strip()
+        if cleaned and cleaned not in candidates:
+            candidates.append(cleaned)
+
+    current_roc = datetime.now().year - 1911
+    years = {current_roc, current_roc - 1, current_roc + 1}
+    for match in re.findall(r"(?<!\d)(1\d{2})(?!\d)", filename or ""):
+        years.add(int(match))
+
+    for year in sorted(years, reverse=True):
+        for candidate in (f"{year}{year}", str(year)):
+            if candidate not in candidates:
+                candidates.append(candidate)
+    return candidates
+
+def _encrypted_hint(filename: str, error: Exception | str = "") -> str:
+    detail = str(error)
+    if detail:
+        return f"{filename} 可能有密碼保護，目前無法讀取。請在「檔案密碼」欄輸入密碼後重試。錯誤：{detail}"
+    return f"{filename} 可能有密碼保護，目前無法讀取。請在「檔案密碼」欄輸入密碼後重試。"
+
+def extract_text_from_file(file_bytes: bytes, filename: str, passwords: list[str] | None = None) -> str:
     fn = filename.lower()
     if fn.endswith('.pdf'):
+        last_error = None
         try:
             import pdfplumber
             parts = []
@@ -190,8 +216,24 @@ def extract_text_from_file(file_bytes: bytes, filename: str) -> str:
                         parts.append(f"[第{i}頁]\n{t}")
             return "\n\n".join(parts)
         except Exception as e:
-            return f"PDF 讀取失敗：{e}"
+            last_error = e
+
+        for password in _password_candidates(filename, passwords):
+            try:
+                import pdfplumber
+                parts = []
+                with pdfplumber.open(io.BytesIO(file_bytes), password=password) as pdf:
+                    for i, page in enumerate(pdf.pages[:20], 1):
+                        t = (page.extract_text() or "").strip()
+                        if t:
+                            parts.append(f"[第{i}頁]\n{t}")
+                if parts:
+                    return f"已使用密碼讀取：{password}\n\n" + "\n\n".join(parts)
+            except Exception as e:
+                last_error = e
+        return _encrypted_hint(filename, last_error or "PDF 讀取失敗")
     if fn.endswith(('.xlsx', '.xls')):
+        last_error = None
         try:
             import pandas as pd
             df = pd.read_excel(io.BytesIO(file_bytes))
@@ -200,7 +242,25 @@ def extract_text_from_file(file_bytes: bytes, filename: str) -> str:
                      df.head(50).to_string(index=False)]
             return "\n".join(lines)
         except Exception as e:
-            return f"Excel 讀取失敗：{e}"
+            last_error = e
+
+        for password in _password_candidates(filename, passwords):
+            try:
+                import msoffcrypto
+                import pandas as pd
+                decrypted = io.BytesIO()
+                office = msoffcrypto.OfficeFile(io.BytesIO(file_bytes))
+                office.load_key(password=password)
+                office.decrypt(decrypted)
+                decrypted.seek(0)
+                df = pd.read_excel(decrypted)
+                df = df.dropna(how='all').dropna(axis=1, how='all')
+                lines = [f"已使用密碼讀取：{password}", f"欄位：{', '.join(df.columns.astype(str))}", f"筆數：{len(df)}", "",
+                         df.head(50).to_string(index=False)]
+                return "\n".join(lines)
+            except Exception as e:
+                last_error = e
+        return _encrypted_hint(filename, last_error or "Excel 讀取失敗")
     if fn.endswith(('.txt', '.md', '.csv')):
         try:
             return file_bytes.decode('utf-8', errors='replace')

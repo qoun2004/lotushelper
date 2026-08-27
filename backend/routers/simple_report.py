@@ -117,19 +117,30 @@ async def generate_simple_report(
     length_limit: str = Form("2頁內"),
     user_request: str = Form(""),
     selected_focus: str = Form(""),
+    file_password: str = Form(""),
     files: list[UploadFile] = File(default=[]),
 ):
     try:
         file_sections = []
+        unreadable_files = []
         for index, file in enumerate(files[:8], 1):
             raw = await file.read()
             if not raw:
                 continue
-            text = extract_text_from_file(raw, file.filename or f"檔案{index}")
+            text = extract_text_from_file(raw, file.filename or f"檔案{index}", passwords=[file_password])
+            if "可能有密碼保護，目前無法讀取" in text or "讀取失敗" in text:
+                unreadable_files.append(text)
+                continue
             file_sections.append(
                 f"【上傳資料 {index}：{file.filename}】\n"
                 f"讀取內容：\n{text[:10000]}"
             )
+
+        if unreadable_files and not file_sections and not user_request.strip():
+            return JSONResponse({
+                "error": "檔案目前無法讀取，可能需要密碼。請在「檔案密碼」欄輸入後重試。",
+                "details": unreadable_files[:3],
+            }, status_code=400)
 
         if not file_sections and not user_request.strip():
             return JSONResponse({"error": "請至少上傳一份資料，或用文字/語音說明需求"}, status_code=400)

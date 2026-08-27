@@ -8,6 +8,7 @@ Pillow
 httpx
 python-dotenv
 pdfplumber
+msoffcrypto-tool
 apscheduler
 python-docx
 supabase

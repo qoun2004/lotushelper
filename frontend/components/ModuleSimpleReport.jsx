@@ -69,6 +69,7 @@ export default function ModuleSimpleReport() {
   const [audience, setAudience] = useState('主管');
   const [lengthLimit, setLengthLimit] = useState('2頁內，重點條列，避免太長');
   const [request, setRequest] = useState('');
+  const [filePassword, setFilePassword] = useState('');
   const [focus, setFocus] = useState(['成果亮點', '異常與風險', '待辦清單']);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -109,6 +110,7 @@ export default function ModuleSimpleReport() {
       form.append('length_limit', lengthLimit);
       form.append('user_request', request);
       form.append('selected_focus', focus.join('、'));
+      form.append('file_password', filePassword);
       files.forEach(file => form.append('files', file));
       const res = await fetch(`${API}/api/simple_report/generate`, { method: 'POST', body: form });
       const data = await res.json();
@@ -211,6 +213,18 @@ export default function ModuleSimpleReport() {
             ))}
           </div>
         )}
+        <div className="sr-password-box">
+          <label>
+            <span>檔案密碼</span>
+            <input
+              type="text"
+              value={filePassword}
+              onChange={e => setFilePassword(e.target.value)}
+              placeholder="可留空，例如 114114"
+            />
+          </label>
+          <p>如果 PDF 或 Excel 有密碼，填一次就會套用到本次上傳。留空時系統會自動試民國年常見密碼，例如 114114、115115。</p>
+        </div>
       </section>
 
       <section className="sr-panel">

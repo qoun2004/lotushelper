@@ -527,6 +527,42 @@ body {
   flex-shrink: 0;
 }
 
+.sr-password-box {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--brand-border);
+  border-radius: 14px;
+  background: var(--brand-bg);
+}
+
+.sr-password-box label span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sr-password-box input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--brand-border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+}
+
+.sr-password-box p {
+  margin: 8px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .sr-request-box {
   display: flex;
   align-items: flex-start;
