@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import HomeDashboard from '../components/HomeDashboard';
+import ModuleSimpleReport from '../components/ModuleSimpleReport';
 import Module1Report from '../components/Module1Report';
 import Module2DM from '../components/Module2DM';
 import Module3Vendor from '../components/Module3Vendor';
@@ -12,29 +13,31 @@ import AuthModal from '../components/AuthModal';
 import { supabase } from '../lib/supabase';
 
 const TABS = [
-  { id: 0, icon: '🏠', label: '首頁',    short: '首頁',  desc: '工具總覽' },
-  { id: 1, icon: '📊', label: '週報自駕', short: '週報',  desc: 'Excel → 報告 PPT' },
-  { id: 2, icon: '👁️', label: 'DM 分析', short: 'DM',   desc: 'PDF × 銷售對比' },
-  { id: 3, icon: '🤝', label: '廠商星探', short: '星探',  desc: '廠商搜尋 & 開發' },
-  { id: 4, icon: '📈', label: '口碑機',   short: '口碑',  desc: '零預算社群文案' },
-  { id: 5, icon: '📡', label: '商機雷達', short: '雷達',  desc: '爆紅趨勢 & 聯名' },
-  { id: 6, icon: '📝', label: '會議記錄', short: '會議',  desc: '逐字稿 → 決議待辦' },
+  { id: 0, icon: '✨', label: '簡單報告', short: '報告',  desc: '丟資料 → 說需求 → 產出' },
+  { id: 1, icon: '🏠', label: '首頁',    short: '首頁',  desc: '工具總覽' },
+  { id: 2, icon: '📊', label: '週報自駕', short: '週報',  desc: 'Excel → 報告 PPT' },
+  { id: 3, icon: '👁️', label: 'DM 分析', short: 'DM',   desc: 'PDF × 銷售對比' },
+  { id: 4, icon: '🤝', label: '廠商星探', short: '星探',  desc: '廠商搜尋 & 開發' },
+  { id: 5, icon: '📈', label: '口碑機',   short: '口碑',  desc: '零預算社群文案' },
+  { id: 6, icon: '📡', label: '商機雷達', short: '雷達',  desc: '爆紅趨勢 & 聯名' },
+  { id: 7, icon: '📝', label: '會議記錄', short: '會議',  desc: '逐字稿 → 決議待辦' },
 ];
 
 // 知識庫是獨立的隱藏 tab（桌機側邊欄可進入，不佔手機 tab 列）
-const KB_ID = 7;
+const KB_ID = 8;
 
 const MOBILE_PRIMARY = [
-  { id: 0, icon: '🏠', label: '首頁' },
-  { id: 1, icon: '📊', label: '報告' },
-  { id: 3, icon: '🤝', label: '開發' },
-  { id: 4, icon: '📈', label: '內容' },
+  { id: 0, icon: '✨', label: '報告' },
+  { id: 1, icon: '🏠', label: '首頁' },
+  { id: 4, icon: '🤝', label: '開發' },
+  { id: 5, icon: '📈', label: '內容' },
 ];
 
 const MOBILE_MORE = [
-  { id: 2, icon: '👁️', label: 'DM 分析', desc: 'PDF × 銷售對比' },
-  { id: 5, icon: '📡', label: '商機雷達', desc: '爆紅趨勢 & 聯名' },
-  { id: 6, icon: '📝', label: '會議記錄', desc: '逐字稿 → 決議待辦' },
+  { id: 2, icon: '📊', label: '週報自駕', desc: 'Excel → 報告 PPT' },
+  { id: 3, icon: '👁️', label: 'DM 分析', desc: 'PDF × 銷售對比' },
+  { id: 6, icon: '📡', label: '商機雷達', desc: '爆紅趨勢 & 聯名' },
+  { id: 7, icon: '📝', label: '會議記錄', desc: '逐字稿 → 決議待辦' },
   { id: KB_ID, icon: '🧠', label: '個人知識庫', desc: '上傳報告 / 成功案例' },
 ];
 
@@ -62,7 +65,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = parseInt(params.get('tab') || '0', 10);
-    if (tab >= 0 && tab <= 7) setActiveTab(tab);
+    if (tab >= 0 && tab <= 8) setActiveTab(tab);
   }, []);
 
   useEffect(() => {
@@ -310,13 +313,14 @@ export default function Home() {
           className="app-main"
           onClick={() => { if (showUserMenu) setShowUserMenu(false); if (showMobileMore) setShowMobileMore(false); }}
         >
-          {activeTab === 0 && <HomeDashboard onNavigate={setActiveTab} />}
-          {activeTab === 1 && <Module1Report />}
-          {activeTab === 2 && <Module2DM />}
-          {activeTab === 3 && <Module3Vendor />}
-          {activeTab === 4 && <Module4Social />}
-          {activeTab === 5 && <Module5Radar />}
-          {activeTab === 6 && <Module6Meeting />}
+          {activeTab === 0 && <ModuleSimpleReport />}
+          {activeTab === 1 && <HomeDashboard onNavigate={setActiveTab} />}
+          {activeTab === 2 && <Module1Report />}
+          {activeTab === 3 && <Module2DM />}
+          {activeTab === 4 && <Module3Vendor />}
+          {activeTab === 5 && <Module4Social />}
+          {activeTab === 6 && <Module5Radar />}
+          {activeTab === 7 && <Module6Meeting />}
           {activeTab === KB_ID && <KnowledgeBase />}
         </main>
 

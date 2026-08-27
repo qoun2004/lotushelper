@@ -14,10 +14,10 @@ const P_ORDER = { high: 0, medium: 1, low: 2 };
 
 // ── 工具卡片 ──────────────────────────────────────────────────────
 const MODULES = [
-  { id: 1, icon: '📊', accent: '#5A6EA0', accentBg: '#EEF1F8', title: '週報自駕',    desc: '上傳 Excel → AI 週報月報 → PPT 一鍵匯出', tags: ['Excel 分析', 'PPT 匯出', '三年對比'] },
-  { id: 2, icon: '👁️', accent: '#7058A0', accentBg: '#F2EEF8', title: 'DM 策略分析', desc: '前年＋去年 DM PDF → 交叉銷售數據 → 今年企劃', tags: ['PDF 解析', '商品分類', '三年對比'] },
-  { id: 3, icon: '🤝', accent: '#4A7059', accentBg: '#EBF4EF', title: '廠商星探',    desc: 'AI 篩選超商標準廠商 → 廠商庫管理 → 一鍵開發信', tags: ['真實資料庫', '廠商庫', 'Email 發送'] },
-  { id: 4, icon: '📈', accent: '#9A7030', accentBg: '#FBF3E5', title: '口碑機',      desc: '輸入商品 → 5 組零業配爆款文案 → 短影音腳本', tags: ['Threads', 'Dcard', 'IG 文案'] },
+  { id: 2, icon: '📊', accent: '#5A6EA0', accentBg: '#EEF1F8', title: '週報自駕',    desc: '上傳 Excel → AI 週報月報 → PPT 一鍵匯出', tags: ['Excel 分析', 'PPT 匯出', '三年對比'] },
+  { id: 3, icon: '👁️', accent: '#7058A0', accentBg: '#F2EEF8', title: 'DM 策略分析', desc: '前年＋去年 DM PDF → 交叉銷售數據 → 今年企劃', tags: ['PDF 解析', '商品分類', '三年對比'] },
+  { id: 4, icon: '🤝', accent: '#4A7059', accentBg: '#EBF4EF', title: '廠商星探',    desc: 'AI 篩選超商標準廠商 → 廠商庫管理 → 一鍵開發信', tags: ['真實資料庫', '廠商庫', 'Email 發送'] },
+  { id: 5, icon: '📈', accent: '#9A7030', accentBg: '#FBF3E5', title: '口碑機',      desc: '輸入商品 → 5 組零業配爆款文案 → 短影音腳本', tags: ['Threads', 'Dcard', 'IG 文案'] },
 ];
 
 // ══════════════════════════════════════════════════════════════════
@@ -414,7 +414,7 @@ function DailyVendors({ onNavigate }) {
         </p>
         <div style={{ display: 'flex', gap: 8 }}>
           {picks.length > 0 && (
-            <button onClick={() => onNavigate(3)} style={{ fontSize: 12, color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}>廠商星探 →</button>
+            <button onClick={() => onNavigate(4)} style={{ fontSize: 12, color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}>廠商星探 →</button>
           )}
           <button onClick={load} disabled={loading} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-2)', cursor: 'pointer' }}>
             {loading ? '掃描中…' : data ? '更新' : '載入推薦'}
@@ -517,7 +517,7 @@ export default function HomeDashboard({ onNavigate }) {
 
       {/* ── 商機雷達入口 ── */}
       <button
-        onClick={() => onNavigate(5)}
+        onClick={() => onNavigate(6)}
         style={{
           display: 'flex', alignItems: 'center', gap: 14,
           padding: '16px 18px', background: 'var(--surface)',
@@ -541,7 +541,7 @@ export default function HomeDashboard({ onNavigate }) {
       {/* ── 底部工具列 ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button
-          onClick={() => onNavigate(6)}
+          onClick={() => onNavigate(7)}
           style={{
             display: 'flex', alignItems: 'center', gap: 14,
             padding: '14px 18px', background: 'var(--surface)',
@@ -560,7 +560,7 @@ export default function HomeDashboard({ onNavigate }) {
         </button>
 
         <button
-          onClick={() => onNavigate(7)}
+          onClick={() => onNavigate(8)}
           style={{
             display: 'flex', alignItems: 'center', gap: 14,
             padding: '14px 18px', background: 'var(--surface)',
